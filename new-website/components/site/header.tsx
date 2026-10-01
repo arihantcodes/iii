@@ -83,7 +83,7 @@ export function Header({ stats }: { stats: CommunityStats }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: duration.slow }}
-            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-background/80 lg:hidden"
           />
         ) : null}
       </AnimatePresence>
@@ -99,7 +99,7 @@ export function Header({ stats }: { stats: CommunityStats }) {
           className={cn(
             'pointer-events-auto relative mx-auto overflow-hidden border transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300',
             floating
-              ? 'border-border bg-background/70 shadow-[0_8px_30px_-14px_rgb(0_0_0/0.14)] backdrop-blur-xl backdrop-saturate-150 dark:bg-[oklch(0.16_0_0/0.72)] dark:shadow-[0_8px_32px_-12px_rgb(0_0_0/0.5),inset_0_1px_0_0_rgb(255_255_255/0.04)]'
+              ? 'border-border bg-[oklch(0.16_0_0/0.96)] shadow-[0_8px_32px_-12px_rgb(0_0_0/0.5),inset_0_1px_0_0_rgb(255_255_255/0.04)] md:bg-[oklch(0.16_0_0/0.72)] md:backdrop-blur-xl md:backdrop-saturate-150'
               : 'border-transparent bg-transparent',
           )}
         >

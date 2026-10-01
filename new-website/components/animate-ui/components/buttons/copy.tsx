@@ -104,9 +104,9 @@ function CopyButton({
         <motion.span
           key={isCopied ? 'check' : 'copy'}
           data-slot="copy-button-icon"
-          initial={{ scale: 0.5, opacity: 0, filter: 'blur(4px)' }}
-          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-          exit={{ scale: 0.5, opacity: 0, filter: 'blur(4px)' }}
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.5, opacity: 0 }}
           transition={{ duration: duration.base, ease: easeOut }}
         >
           <Icon />

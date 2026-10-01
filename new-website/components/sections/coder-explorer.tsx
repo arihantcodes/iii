@@ -9,6 +9,7 @@ import { CoderObserve } from '@/components/graphics/coder-observe'
 import { CoderReact } from '@/components/graphics/coder-react'
 import { DemoPlayback } from '@/components/graphics/demo-playback'
 import { GraphicPlaybackContext } from '@/components/graphics/graphic-playback-context'
+import { ScrollStage } from '@/components/site/scroll-stage'
 import { useDemoPlayback } from '@/hooks/use-demo-playback'
 import { spring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -119,9 +120,11 @@ export function CoderExplorer({ items }: { items: CoderItem[] }) {
             </div>
           </div>
           <GraphicPlaybackContext value={running}>
-            <div key={current.id} className="swap-in relative mx-auto min-w-0 max-w-[600px] py-2">
-              <Graphic />
-            </div>
+            <ScrollStage key={current.id} className="swap-in">
+              <div className="relative mx-auto min-w-0 max-w-[600px] py-2">
+                <Graphic />
+              </div>
+            </ScrollStage>
           </GraphicPlaybackContext>
           <p
             key={current.id}

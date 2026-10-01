@@ -1,0 +1,35 @@
+/*
+ * The scan band steps down the engine ten rows at a time instead of sliding every frame. Each step re-rasterizes
+ * ~5,500 clipped glyphs, so stepping cuts that work from ~170 repaints per cycle to 10, and the stepping itself
+ * reads as a dot-matrix head moving line by line.
+ */
+.scan {
+  animation: scan 2.9s steps(10, end) infinite;
+  animation-play-state: paused;
+  transform: translateY(0);
+}
+
+.running .scan {
+  animation-play-state: running;
+}
+
+.idle .scan {
+  animation: none;
+  transform: translateY(110px);
+}
+
+@keyframes scan {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(270px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan {
+    animation: none;
+    transform: translateY(110px);
+  }
+}
