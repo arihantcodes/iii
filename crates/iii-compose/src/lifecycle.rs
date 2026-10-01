@@ -29,7 +29,7 @@ use serde::Serialize;
 
 use crate::{
     config::{ComposeFile, Container, RestartPolicy},
-    configuration::{ConfigFile, merge},
+    configuration::merge,
     dag,
     engine::EngineClient,
     error::{ComposeError, Result},
@@ -107,8 +107,6 @@ pub struct LifecycleCtx<'a> {
     /// Namespace the *children* register in — not the daemon's own.
     pub project_namespace: &'a str,
     pub engine_url: &'a str,
-    /// Directory for resolved config files, owner-only.
-    pub config_dir: &'a std::path::Path,
     /// Where installed packages live, shared across projects on this machine.
     pub package_cache: &'a std::path::Path,
     /// Persistent, bounded stdout and stderr for every project worker.
@@ -1020,7 +1018,6 @@ async fn start_one_until_shutdown(
         compose_file: &ctx.file.path,
         container_key: key,
         start: &start,
-        config_path: config.file.as_ref().map(ConfigFile::path),
         config_name: Some(&config.name),
         working_dir: &working_dir,
         user_env: &user_env,
@@ -1058,12 +1055,12 @@ async fn start_one_until_shutdown(
                     .emit(Some(key), "preparing", "preparing VM runtime")
                     .await;
             }
-            wait_or_interrupt!(vm_command(ctx, key, &start, &plan, config.file.as_ref())).map_err(
-                |message| ComposeError::SpawnFailed {
+            wait_or_interrupt!(vm_command(ctx, key, &start, &plan)).map_err(|message| {
+                ComposeError::SpawnFailed {
                     container: key.to_string(),
                     message,
-                },
-            )?
+                }
+            })?
         }
     };
 
@@ -1137,17 +1134,13 @@ async fn start_one_until_shutdown(
 /// which is the same split the installer makes by shipping `iii-worker` as its
 /// own asset.
 ///
-/// The environment sent is the one a host container would get, with one
-/// substitution: `III_CONFIG` names a host path, and the guest cannot open it.
-/// The container's config directory is published into the VM and the variable
-/// is repointed at the file inside it, so a worker reads its configuration the
-/// same way whichever side of the boundary it runs on.
+/// Uses the host container environment. Configuration is served by the engine,
+/// not mounted into the guest.
 async fn vm_command(
     ctx: &LifecycleCtx<'_>,
     key: &str,
     start: &StartSpec,
     plan: &crate::spawn::SpawnPlan,
-    config: Option<&ConfigFile>,
 ) -> std::result::Result<tokio::process::Command, String> {
     let (worker_dir, run_override, prepare_command) = match start {
         StartSpec::Vm(VmSpec::Bundle { install_dir }) => (install_dir, None, "__bundle-prepare"),
@@ -1158,47 +1151,13 @@ async fn vm_command(
         _ => return Err("not a VM container".to_string()),
     };
 
-    let mut env: BTreeMap<String, String> = plan.env.clone();
-    let config_dir = match config {
-        Some(config) => {
-            // Published through a directory of this container's own, not the
-            // project's `config/`. virtiofs shares a whole tree, so mounting
-            // the shared one would put every sibling's resolved secrets inside
-            // this guest. Beside the rootfs rather than inside it: the rootfs
-            // is the guest's `/`, and a `config` directory there would collide
-            // with whatever the image already has.
-            let path = config.path();
-            let Some(name) = path.file_name() else {
-                return Err(format!("config file has no name: {}", path.display()));
-            };
-            let dir = ctx.vm_dir.join(format!("{key}-config"));
-            std::fs::create_dir_all(&dir)
-                .map_err(|err| format!("cannot make {}: {err}", dir.display()))?;
-            let published = dir.join(name);
-            std::fs::copy(path, &published)
-                .map_err(|err| format!("cannot publish the config for the VM: {err}"))?;
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let _ =
-                    std::fs::set_permissions(&published, std::fs::Permissions::from_mode(0o600));
-            }
-            env.insert(
-                "III_CONFIG".to_string(),
-                format!("{GUEST_CONFIG_DIR}/{}", name.to_string_lossy()),
-            );
-            Some(dir)
-        }
-        None => None,
-    };
-
+    let env: BTreeMap<String, String> = plan.env.clone();
     let request = serde_json::json!({
         "worker_name": key,
         "worker_dir": worker_dir,
         "state_dir": ctx.vm_dir.join(key),
         "engine_url": ctx.engine_url,
         "extra_env": env,
-        "config_dir": config_dir,
         "run_override": run_override,
     });
 
@@ -1216,10 +1175,6 @@ async fn vm_command(
     command.stdin(std::process::Stdio::null());
     Ok(command)
 }
-
-/// Where a container's config directory appears inside the guest. The same
-/// constant `iii-worker` mounts it at; it is part of the request contract.
-const GUEST_CONFIG_DIR: &str = "/run/iii/config";
 
 /// What an `iii-worker` VM prepare command answers: a program, its arguments, and
 /// the environment to start it with.
@@ -1366,7 +1321,6 @@ async fn stop_one(
             compose_file: &ctx.file.path,
             container_key: key,
             start: &start,
-            config_path: None,
             config_name: None,
             working_dir: &working_dir,
             user_env: &user_env,
@@ -1399,15 +1353,41 @@ async fn rollback(
     }
 }
 
-/// The configuration identity is always delivered, even before a worker has
-/// seeded its first value. A file exists only when there is a value to deliver.
+/// The configuration identity is always delivered, even before first registration.
 pub struct ResolvedConfig {
-    pub file: Option<ConfigFile>,
     pub name: String,
 }
 
-/// Resolves the identity and merges package defaults, stored values, and overrides.
-/// Publishes before startup; an absent value yields only the identity, while
+fn resolve_config_value(
+    shipped: Option<serde_yaml::Value>,
+    fetched: Option<serde_yaml::Value>,
+    overrides: Option<serde_yaml::Value>,
+) -> Option<serde_yaml::Value> {
+    // An empty published mapping means the package has no public default. Do
+    // not inject it before the worker can register its own runtime default.
+    let mut value = shipped.filter(
+        |value| !matches!(value, serde_yaml::Value::Mapping(mapping) if mapping.is_empty()),
+    );
+
+    if let Some(fetched) = fetched {
+        value = Some(match value {
+            Some(base) => merge(base, fetched),
+            None => fetched,
+        });
+    }
+
+    if let Some(overrides) = overrides {
+        value = Some(match value {
+            Some(base) => merge(base, overrides),
+            None => overrides,
+        });
+    }
+
+    value
+}
+
+/// Resolves the identity and merges package defaults, current values, and overrides.
+/// Injects the execution value into the service without persisting it, while
 /// service failures propagate rather than silently starting with stale defaults.
 async fn resolve_config(
     ctx: &LifecycleCtx<'_>,
@@ -1415,35 +1395,36 @@ async fn resolve_config(
     key: &str,
     shipped: Option<serde_yaml::Value>,
 ) -> Result<ResolvedConfig> {
-    let name = container.resolved_config_name(ctx.project_namespace, key);
-    // Lowest to highest: package defaults, stored value, compose override.
+    let name = container.resolved_config_name(ctx.project_namespace, key)?;
+    if container.config_name.is_none() {
+        let legacy = crate::configuration::legacy_config_name(ctx.project_namespace, key);
+        ctx.engine.migrate_config(&legacy, &name).await?;
+        // Pre-namespace installations used the container key directly. Only
+        // the default namespace may adopt it, and never steal a name another
+        // container in this project explicitly owns. The bare legacy source
+        // wins even over a destination created by an earlier Compose version.
+        // The authority archives the source after publishing the destination.
+        if ctx.project_namespace == "default"
+            && !ctx
+                .file
+                .containers
+                .values()
+                .any(|other| other.config_name.as_deref() == Some(key))
+        {
+            ctx.engine.migrate_config(key, &name).await?;
+        }
+    }
+    // Lowest to highest: package defaults, current active value, compose override.
     // NOT_FOUND contributes nothing; transport/service failures still fail boot.
-    let mut value = shipped;
-    if let Some(fetched) = ctx.engine.fetch_config(&name).await? {
-        value = Some(match value {
-            Some(base) => merge(base, fetched),
-            None => fetched,
-        });
-    }
+    let fetched = ctx.engine.fetch_config(&name).await?;
+    let value = resolve_config_value(shipped, fetched, container.config_override.clone());
 
-    if let Some(overrides) = &container.config_override {
-        value = Some(match value {
-            Some(base) => merge(base, overrides.clone()),
-            None => overrides.clone(),
-        });
+    // GET supplies the current active value, not a forced reload from disk.
+    // Omitting an override keeps that value, including after a worker restart.
+    if let Some(value) = value {
+        ctx.engine.set_config(&name, value).await?;
     }
-
-    let file = if let Some(value) = value {
-        // Workers must honor III_CONFIG_NAME when reading the service. Both
-        // delivery paths carry the same merged value before the child starts.
-        ctx.engine.publish_config(&name, &value).await?;
-        Some(ConfigFile::write(ctx.config_dir, key, &value)?)
-    } else {
-        // Do not publish an empty placeholder: let the worker seed its defaults
-        // under the assigned name on its first registration.
-        None
-    };
-    Ok(ResolvedConfig { file, name })
+    Ok(ResolvedConfig { name })
 }
 
 async fn fire_post_run(ctx: &LifecycleCtx<'_>, spawn_ctx: &SpawnCtx<'_>, container: &Container) {
@@ -1546,6 +1527,66 @@ containers:
     fn an_unknown_target_is_rejected_before_anything_starts() {
         let err = plan_targets(&file(), Some("ghost")).unwrap_err();
         assert_eq!(err.code(), "UNKNOWN_CONTAINER");
+    }
+
+    fn yaml(text: &str) -> serde_yaml::Value {
+        serde_yaml::from_str(text).expect("fixture should parse")
+    }
+
+    #[test]
+    fn an_empty_shipped_default_without_other_layers_is_not_injected() {
+        assert_eq!(resolve_config_value(Some(yaml("{}")), None, None), None);
+    }
+
+    #[test]
+    fn a_null_shipped_default_is_not_normalized() {
+        assert_eq!(
+            resolve_config_value(Some(serde_yaml::Value::Null), None, None),
+            Some(serde_yaml::Value::Null)
+        );
+    }
+    #[test]
+    fn an_empty_shipped_default_preserves_the_active_configuration() {
+        assert_eq!(
+            resolve_config_value(Some(yaml("{}")), Some(yaml("port: 5432")), None),
+            Some(yaml("port: 5432"))
+        );
+    }
+
+    #[test]
+    fn an_empty_shipped_default_preserves_the_compose_override() {
+        assert_eq!(
+            resolve_config_value(Some(yaml("{}")), None, Some(yaml("port: 6432"))),
+            Some(yaml("port: 6432"))
+        );
+    }
+
+    #[test]
+    fn a_real_shipped_default_preserves_layer_precedence() {
+        assert_eq!(
+            resolve_config_value(
+                Some(yaml("host: package\nport: 1111\n")),
+                Some(yaml("port: 2222\n")),
+                Some(yaml("port: 3333\n")),
+            ),
+            Some(yaml("host: package\nport: 3333\n"))
+        );
+    }
+
+    #[test]
+    fn an_explicit_empty_active_configuration_is_not_normalized() {
+        assert_eq!(
+            resolve_config_value(Some(yaml("{}")), Some(yaml("{}")), None),
+            Some(yaml("{}"))
+        );
+    }
+
+    #[test]
+    fn an_explicit_empty_override_is_not_normalized() {
+        assert_eq!(
+            resolve_config_value(Some(yaml("{}")), None, Some(yaml("{}"))),
+            Some(yaml("{}"))
+        );
     }
 
     #[test]
