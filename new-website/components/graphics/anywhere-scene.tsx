@@ -361,9 +361,9 @@ export function AnywhereScene({ hovered, onHover, className }: SceneProps) {
           <motion.div
             key={active ? step % SCRIPT.length : 'static'}
             className="flex flex-col items-center gap-0.5 md:flex-row md:gap-3"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
             transition={{ duration: 0.3, ease }}
           >
             <span className="flex items-center gap-2 text-muted-foreground">

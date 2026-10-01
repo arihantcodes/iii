@@ -502,9 +502,9 @@ export function AgentsHarness({ className }: { className?: string }) {
           <motion.span
             key={s}
             className="line-clamp-2 text-pretty sm:truncate"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
             transition={{ duration: 0.3, ease }}
           >
             {current.caption}

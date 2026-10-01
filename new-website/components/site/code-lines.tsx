@@ -21,7 +21,7 @@ export function CodeLines({ lines, className }: { lines: CodeLine[]; className?:
       className={cn('outline-none', className)}
       initial="hidden"
       whileInView="shown"
-      viewport={{ once: true, amount: 0.2 }}
+      viewport={{ once: true, amount: 0.4 }}
     >
       <code className="code-tokens">
         {lines.map((tokens, index) => (

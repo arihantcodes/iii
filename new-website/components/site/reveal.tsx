@@ -12,7 +12,7 @@ type RevealProps = {
   as?: 'div' | 'li' | 'section' | 'header'
 }
 
-/** Fades content up once, the first time it enters the viewport. Tall blocks reveal as soon as their top 12% is in. */
+/** Fades content up once, the first time it enters the viewport. */
 export function Reveal({ children, className, delay = 0, as = 'div' }: RevealProps) {
   const Component = motion[as]
   return (
@@ -20,7 +20,7 @@ export function Reveal({ children, className, delay = 0, as = 'div' }: RevealPro
       className={cn('reveal', className)}
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.12, margin: '0px 0px -40px 0px' }}
+      viewport={{ once: true, amount: 0.25 }}
       transition={{ duration: duration.reveal, delay, ease: easeOut }}
     >
       {children}

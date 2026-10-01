@@ -1,9 +1,7 @@
 'use client'
 
+import { motion } from 'motion/react'
 import { useId } from 'react'
-
-import { cn } from '@/lib/utils'
-import styles from './hero-ascii-core.module.css'
 
 type Point = readonly [number, number]
 type Face = { points: Point[]; glyphs: string }
@@ -57,15 +55,18 @@ const rows = Array.from({ length: 43 }, (_, row) => {
 export function HeroAsciiCore({ running, sequence }: { running: boolean; sequence: number }) {
   const id = useId()
   return (
-    <svg
-      viewBox="0 0 290 320"
-      className={cn('h-auto w-full', running ? styles.running : styles.idle)}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 290 320" className="h-auto w-full" aria-hidden="true">
       <defs>
         <clipPath id={id}>
-          {/* Re-keyed per scene so the band restarts from the top with each new request. */}
-          <rect key={sequence} x="0" y="0" width="290" height="65" className={styles.scan} />
+          <motion.rect
+            key={sequence}
+            x="0"
+            width="290"
+            height="65"
+            initial={false}
+            animate={running ? { y: [0, 270] } : { y: 110 }}
+            transition={running ? { duration: 2.9, ease: 'linear', repeat: Number.POSITIVE_INFINITY } : { duration: 0 }}
+          />
         </clipPath>
       </defs>
       <path d="M24 239 144 191 271 241 151 291Z" fill="var(--background)" stroke="var(--line-strong)" />

@@ -1,7 +1,6 @@
 import { AgentsHarness } from '@/components/graphics/agents-harness'
 import { CodeBlock } from '@/components/site/code-block'
 import { Reveal } from '@/components/site/reveal'
-import { ScrollStage } from '@/components/site/scroll-stage'
 import { Section } from '@/components/site/section'
 
 const sendCode = `
@@ -57,11 +56,9 @@ export function Agents() {
           <CodeBlock code={sendCode} lang="ts" title="agent.ts" typed />
         </Reveal>
         <Reveal delay={0.15} className="mx-auto w-full max-w-[480px] lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <ScrollStage minWidth={480}>
-            <div className="graphic-stage">
-              <AgentsHarness />
-            </div>
-          </ScrollStage>
+          <div className="graphic-stage">
+            <AgentsHarness />
+          </div>
         </Reveal>
         <div className="grid gap-8 sm:grid-cols-2 lg:col-start-1 lg:row-start-2 lg:grid-cols-1">
           {controls.map((c, i) => (

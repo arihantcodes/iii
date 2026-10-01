@@ -59,9 +59,9 @@ export function CoderFrame({ frameRef, label, caption, captionKey, children, cla
           <motion.span
             key={captionKey}
             className="truncate"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -6, filter: 'blur(2px)' }}
             transition={{ duration: 0.3, ease }}
           >
             {caption}
