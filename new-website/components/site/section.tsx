@@ -30,7 +30,7 @@ export function Section({ id, eyebrow, title, lede, className, split, children }
         )}
       >
         <Reveal as="header" className={cn('max-w-3xl', split && 'lg:sticky lg:top-28 lg:self-start')}>
-          <p className="font-mono font-medium text-muted-foreground text-xs uppercase leading-none tracking-[0.08em]">
+          <p className="font-medium font-sans text-muted-foreground text-xs uppercase leading-none tracking-[0.08em]">
             {eyebrow}
           </p>
           <PixelHeading id={`${id}-title`} className={sectionTitleClass}>

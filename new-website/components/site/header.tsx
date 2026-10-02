@@ -288,7 +288,7 @@ function MenuRow({ item, index }: { item: MenuLink; index: number }) {
         <item.icon className="size-4 text-muted-foreground transition-colors group-hover/row:text-foreground" />
         <span className="flex-1 truncate">{item.title}</span>
         {item.meta ? (
-          <span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{item.meta}</span>
+          <span className="font-sans text-[11.5px] text-muted-foreground tabular-nums">{item.meta}</span>
         ) : null}
       </NavigationMenu.Link>
     </motion.div>
@@ -355,7 +355,7 @@ function MobilePanel({ community, onNavigate }: { community: MenuLink[]; onNavig
       <div className="max-h-[calc(100svh-96px)] overflow-y-auto border-t px-2 pt-2 pb-3">
         {groups.map((group) => (
           <div key={group.title} className="py-2">
-            <p className="px-3 pb-1 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+            <p className="px-3 pb-1 font-sans text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
               {group.title}
             </p>
             {group.items.map((item) => {
@@ -376,7 +376,7 @@ function MobilePanel({ community, onNavigate }: { community: MenuLink[]; onNavig
                   <item.icon className="size-[18px] text-foreground/80" />
                   {item.title}
                   {item.meta ? (
-                    <span className="ml-auto font-mono text-muted-foreground text-xs tabular-nums">{item.meta}</span>
+                    <span className="ml-auto font-sans text-muted-foreground text-xs tabular-nums">{item.meta}</span>
                   ) : null}
                 </motion.a>
               )

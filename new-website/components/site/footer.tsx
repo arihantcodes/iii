@@ -66,7 +66,7 @@ export function Footer() {
             <p className="mt-4 max-w-[320px] text-pretty text-[15px] text-muted-foreground leading-relaxed">
               A next-generation software system. Workers. Triggers. Functions.
             </p>
-            <p className="mt-2 font-mono text-[12px] text-muted-foreground">
+            <p className="mt-2 font-sans text-[12px] text-muted-foreground">
               Pronounced <span className="text-foreground/80">&quot;three eye&quot;</span>
             </p>
           </div>
@@ -74,7 +74,7 @@ export function Footer() {
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
             {columns.map((column) => (
               <div key={column.title} className="min-w-0">
-                <h3 className="mb-3 font-medium font-mono text-[12px] text-muted-foreground uppercase tracking-[0.08em]">
+                <h3 className="mb-3 font-medium font-sans text-[12px] text-muted-foreground uppercase tracking-[0.08em]">
                   {column.title}
                 </h3>
                 <ul className="flex flex-col">
@@ -104,7 +104,7 @@ export function Footer() {
           </nav>
         </div>
 
-        <div className="mt-12 flex items-center border-t py-5 font-mono text-[12px] text-muted-foreground">
+        <div className="mt-12 flex items-center border-t py-5 font-sans text-[12px] text-muted-foreground">
           <p className="flex items-center gap-1.5">
             © {new Date().getFullYear()} Motia LLC
             <span aria-hidden>·</span>

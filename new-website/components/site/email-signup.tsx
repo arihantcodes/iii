@@ -93,7 +93,7 @@ export function EmailSignup({ className }: { className?: string }) {
                 if (state === 'invalid') setState('idle')
               }}
               aria-invalid={state === 'invalid'}
-              className="h-full min-w-0 flex-1 bg-transparent font-mono text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="h-full min-w-0 flex-1 bg-transparent font-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
             <button
               type="submit"

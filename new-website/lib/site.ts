@@ -1,5 +1,6 @@
 export const links = {
   quickstart: 'https://iii.dev/docs/quickstart',
+  install: 'https://iii.dev/docs/install',
   manifesto: 'https://iii.dev/manifesto',
   docs: 'https://iii.dev/docs',
   registry: 'https://workers.iii.dev/',
