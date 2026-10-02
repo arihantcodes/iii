@@ -28,9 +28,9 @@ export async function Hero() {
     // biome-ignore lint/correctness/useUniqueElementIds: The page has one hero and this is its public anchor.
     <section id="hero" aria-labelledby="hero-title" className="relative overflow-hidden">
       <div className="mx-auto flex w-full max-w-[1240px] flex-col items-center px-5 pt-24 pb-14 sm:px-6 sm:pt-28 sm:pb-16 md:px-5 lg:pt-36 lg:pb-24">
-        {/* A 600px column centred on the page, with its contents left-aligned: the block sits in the middle while the copy still reads as one paragraph. */}
-        <div className="flex w-full max-w-[600px] flex-col items-start text-left">
-          <Reveal className="flex w-full min-w-0">
+        {/* A 600px column centred on the page: eyebrow, headline, paragraph and install card all share one centre line. */}
+        <div className="flex w-full max-w-[600px] flex-col items-center text-center">
+          <Reveal className="flex w-full min-w-0 justify-center">
             <span className="inline-flex h-7 items-center gap-2 rounded-full border px-3 font-sans text-[13px] text-foreground/80 leading-none sm:h-8 sm:text-[13px]">
               <span aria-hidden className="flex items-end gap-px">
                 {[0, 1, 2].map((i) => (
@@ -59,7 +59,7 @@ export async function Hero() {
             </PixelHeading>
           </Reveal>
           <Reveal delay={0.1} className="mt-5 w-full sm:mt-6">
-            <p className="max-w-[560px] text-pretty text-center  text-[15px] text-muted-foreground leading-[1.6] sm:text-[17px] sm:leading-[1.6]">
+            <p className="mx-auto max-w-[560px] text-pretty text-center text-[15px] text-muted-foreground leading-[1.6] sm:text-[17px] sm:leading-[1.6]">
               {hero.copy}
             </p>
           </Reveal>
