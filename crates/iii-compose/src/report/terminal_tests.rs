@@ -1038,6 +1038,100 @@ fn downloaded_workers_keep_one_row_through_every_startup_phase() {
 }
 
 #[test]
+fn nested_warnings_settle_from_active_panel_at_normal_narrow_and_resized_sizes() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    for (height, width, resize) in [(24, 100, false), (24, 28, false), (24, 100, true)] {
+        let mut state = progress(0);
+        state.startup = None;
+        state.rows = vec![
+            Row {
+                key: "alpha".into(),
+                depth: 0,
+                state: RowState::Starting {
+                    what: "waiting".into(),
+                    began: Instant::now(),
+                },
+            },
+            Row {
+                key: "beta".into(),
+                depth: 1,
+                state: RowState::Starting {
+                    what: "waiting".into(),
+                    began: Instant::now(),
+                },
+            },
+        ];
+        let mut terminal = vt100::Parser::new(height, width, 1000);
+        let active = state.render(Some((height, width)));
+        write_terminal(&mut terminal, &active);
+        state.rows[0].state = RowState::Ready {
+            what: "ready".into(),
+            elapsed: Duration::ZERO,
+        };
+        state.rows[1].state = RowState::Ready {
+            what: "ready".into(),
+            elapsed: Duration::ZERO,
+        };
+        if resize {
+            terminal.screen_mut().set_size(height, 18);
+            state.observe_size(Some((height, 18)));
+        }
+        let diagnostics = [
+            EmptyEnvDiagnostic {
+                worker: "alpha".into(),
+                path: "alpha.env".into(),
+                name: "SAFE_NAME".into(),
+                source: EmptyValueSource::SystemUnset,
+            },
+            EmptyEnvDiagnostic {
+                worker: "beta".into(),
+                path: "beta.env".into(),
+                name: "OTHER_NAME".into(),
+                source: EmptyValueSource::SystemNonEmpty,
+            },
+        ];
+        state.settled_env_warnings = diagnostics.to_vec();
+        let output =
+            settled_warning_output(&mut state, Some((height, if resize { 18 } else { width })));
+        write_terminal(&mut terminal, &output);
+        let text = screen_and_history(&mut terminal);
+        for token in [
+            "alpha ready",
+            "⚠ alpha",
+            "SAFE_NAME",
+            "beta ready",
+            "⚠ beta",
+            "OTHER_NAME",
+        ] {
+            assert!(
+                text.contains(token),
+                "{height}x{width} resize={resize}, missing {token}: {text:?}"
+            );
+        }
+        let ar = text.find("alpha ready").unwrap();
+        let aw = text.find("⚠ alpha").unwrap();
+        let br = text.find("beta ready").unwrap();
+        let bw = text.find("⚠ beta").unwrap();
+        assert!(
+            ar < aw && aw < br && br < bw,
+            "{height}x{width} resize={resize}: {text:?}"
+        );
+        if !resize && width == 100 {
+            assert!(
+                !text.contains("Starting") && !text.contains("waiting"),
+                "stale rows: {text:?}"
+            );
+        }
+        if !resize && width == 100 {
+            assert!(
+                output.contains("\x1b["),
+                "fitting animated region should be cleared"
+            );
+        }
+    }
+}
+
+#[test]
 fn static_downloads_report_transitions_not_chunks_or_indentation_changes() {
     for size in [None, Some((3, 80)), Some((24, 20))] {
         let began = Instant::now();
@@ -2321,4 +2415,647 @@ fn static_output_prints_a_version_change_without_a_state_change() {
         console::strip_ansi_codes(&frame).contains("state 0.22.18 ready"),
         "{frame}"
     );
+}
+
+#[test]
+fn mutation_begin_detaches_owned_warning_snapshot_without_erasing_scrollback() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    let project = "/tmp/r1-warning-owner".to_string();
+    let mut state = Console {
+        foreground_project: Some(project.clone()),
+        foreground_active: true,
+        panel_project: Some(project.clone()),
+        startup: Some(StartupRows::new(true)),
+        rows: vec![
+            Row {
+                key: "alpha".into(),
+                depth: 0,
+                state: RowState::Ready {
+                    what: "ready".into(),
+                    elapsed: Duration::ZERO,
+                },
+            },
+            Row {
+                key: "beta".into(),
+                depth: 0,
+                state: RowState::Ready {
+                    what: "ready".into(),
+                    elapsed: Duration::ZERO,
+                },
+            },
+        ],
+        settled_env_warnings: vec![
+            EmptyEnvDiagnostic {
+                worker: "alpha".into(),
+                path: "alpha.env".into(),
+                name: "ALPHA_KEY".into(),
+                source: EmptyValueSource::SystemUnset,
+            },
+            EmptyEnvDiagnostic {
+                worker: "beta".into(),
+                path: "beta.env".into(),
+                name: "BETA_KEY".into(),
+                source: EmptyValueSource::SystemNonEmpty,
+            },
+        ],
+        versions: BTreeMap::from([
+            ("alpha".into(), "1.0.0".into()),
+            ("beta".into(), "2.0.0".into()),
+        ]),
+        ..Console::default()
+    };
+    state.startup.as_mut().unwrap().finish(true, "Ready");
+    let mut terminal = vt100::Parser::new(60, 120, 500);
+    let active = state.render(Some((60, 120)));
+    write_terminal(&mut terminal, &active);
+    let settled = settled_warning_output(&mut state, Some((60, 120)));
+    assert!(
+        state.drawn > 0 && !state.static_output,
+        "fixture must have fitting tracked snapshot"
+    );
+    write_terminal(&mut terminal, &settled);
+    let initial = screen_and_history(&mut terminal);
+    assert!(
+        initial.contains("⚠ alpha") && initial.contains("⚠ beta"),
+        "{initial}"
+    );
+
+    let foreign = mutation_begin_output(&mut state, "/tmp/r1-other-project", Some((60, 120)));
+    assert!(foreign.is_empty(), "foreign owner should not redraw");
+    write_terminal(&mut terminal, &foreign);
+    assert_eq!(state.settled_env_warnings.len(), 2);
+
+    let begin = mutation_begin_output(&mut state, &project, Some((60, 120)));
+    assert!(state.settled_env_warnings.is_empty());
+    write_terminal(&mut terminal, &begin);
+    state.rows = vec![Row {
+        key: "beta".into(),
+        depth: 0,
+        state: RowState::Starting {
+            what: "restarting".into(),
+            began: Instant::now(),
+        },
+    }];
+    let next = state.render(Some((60, 120)));
+    assert!(next.contains("beta 2.0.0 restarting"), "{next:?}");
+    write_terminal(&mut terminal, &next);
+    let after = screen_and_history(&mut terminal);
+    for warning in [
+        "⚠ alpha — empty values in alpha.env",
+        "⚠ beta — empty values in beta.env",
+    ] {
+        assert!(
+            after.contains(warning),
+            "warning vanished from screen/scrollback: {warning}\n{after}"
+        );
+        assert_eq!(
+            after.matches(warning).count(),
+            1,
+            "warning replayed: {warning}\n{after}"
+        );
+    }
+    assert!(after.find("alpha 1.0.0 ready").unwrap() < after.find("⚠ alpha").unwrap());
+    assert!(after.find("beta 2.0.0 ready").unwrap() < after.find("⚠ beta").unwrap());
+    assert!(
+        after.contains("beta 2.0.0 restarting"),
+        "new panel missing: {after}"
+    );
+}
+
+#[test]
+fn mutation_begin_preserves_static_warning_dedupe_without_cursor_controls() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    // None exercises redirected/static output; short height and short width each
+    // independently force untracked rendering on a real VT parser.
+    for size in [None, Some((8, 120)), Some((60, 24))] {
+        let project = "/tmp/r1-static-warning-owner".to_string();
+        let mut state = Console {
+            foreground_project: Some(project.clone()),
+            foreground_active: true,
+            panel_project: Some(project.clone()),
+            startup: Some(StartupRows::new(true)),
+            rows: vec![Row {
+                key: "alpha".into(),
+                depth: 0,
+                state: RowState::Ready {
+                    what: "ready".into(),
+                    elapsed: Duration::ZERO,
+                },
+            }],
+            settled_env_warnings: vec![EmptyEnvDiagnostic {
+                worker: "alpha".into(),
+                path: "alpha.env".into(),
+                name: "SAFE_NAME".into(),
+                source: EmptyValueSource::SystemUnset,
+            }],
+            ..Console::default()
+        };
+        state.startup.as_mut().unwrap().finish(true, "Ready");
+        let settled = settled_warning_output(&mut state, size);
+        assert!(
+            state.drawn == 0 || state.static_output,
+            "snapshot unexpectedly tracked: {size:?}"
+        );
+        let (height, width) = size.unwrap_or((8, 120));
+        let mut terminal = vt100::Parser::new(height, width, 500);
+        write_terminal(&mut terminal, &settled);
+        let begin = mutation_begin_output(&mut state, &project, size);
+        assert!(
+            begin.is_empty(),
+            "unchanged static rows should dedupe: {begin:?}"
+        );
+        assert!(state.settled_env_warnings.is_empty());
+        let after_begin = screen_and_history(&mut terminal);
+        assert_eq!(
+            after_begin.matches("alpha ready").count(),
+            1,
+            "{after_begin}"
+        );
+        assert_eq!(
+            after_begin
+                .matches("⚠ alpha — empty values in alpha.env")
+                .count(),
+            1,
+            "{after_begin}"
+        );
+        state.rows = vec![Row {
+            key: "alpha".into(),
+            depth: 0,
+            state: RowState::Starting {
+                what: "again".into(),
+                began: Instant::now(),
+            },
+        }];
+        let next = state.render(size);
+        assert!(
+            !next.contains("\x1b["),
+            "static transition emitted cursor controls: {next:?}"
+        );
+        assert!(
+            next.contains("alpha"),
+            "new static panel not emitted: {next:?}"
+        );
+        write_terminal(&mut terminal, &next);
+        let history = screen_and_history(&mut terminal);
+        assert_eq!(
+            history
+                .matches("⚠ alpha — empty values in alpha.env")
+                .count(),
+            1,
+            "{history}"
+        );
+        assert!(history.contains("alpha"), "new panel missing: {history}");
+    }
+}
+
+#[test]
+fn settled_warnings_preserve_versions_updates_and_container_counts() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    let project = "warning-owner".to_string();
+    let mut state = progress(0);
+    state.foreground_project = Some(project.clone());
+    state.foreground_active = true;
+    state.rows = vec![Row {
+        key: "alpha".into(),
+        depth: 0,
+        state: RowState::Ready {
+            what: "ready".into(),
+            elapsed: Duration::ZERO,
+        },
+    }];
+    state.versions.insert("alpha".into(), "1.2.3".into());
+    state.settled_env_warnings = vec![EmptyEnvDiagnostic {
+        worker: "alpha".into(),
+        path: "alpha.env".into(),
+        name: "SAFE_KEY".into(),
+        source: EmptyValueSource::SystemUnset,
+    }];
+    state.updates.insert(
+        UpdateOwner {
+            project,
+            operation: "test-update".into(),
+        },
+        BTreeMap::from([(
+            "alpha".into(),
+            UpdateRow {
+                state: UpdateState::Updated("Updated".into()),
+                began: Instant::now(),
+                finished: Some(Duration::ZERO),
+            },
+        )]),
+    );
+    let output = settled_warning_output(&mut state, None);
+    let text = console::strip_ansi_codes(&output);
+    assert!(text.contains("Containers Running (1/1)"), "{text}");
+    assert!(text.contains("alpha 1.2.3 Updated"), "{text}");
+    assert!(text.find("alpha 1.2.3").unwrap() < text.find("⚠ alpha").unwrap());
+    assert!(
+        state.render(None).is_empty(),
+        "settled warnings must not replay in static output"
+    );
+    assert_eq!(
+        state.rows.len(),
+        1,
+        "diagnostics must not become lifecycle rows"
+    );
+}
+
+#[test]
+fn finishing_without_warnings_keeps_existing_settlement_semantics() {
+    let mut state = progress(0);
+    let before = state.render(Some((24, 80)));
+    state.startup.as_mut().unwrap().finish(true, "Ready");
+    let after = state.render(Some((24, 80)));
+    assert!(!before.is_empty());
+    assert!(
+        after.contains("Engine Ready") || after.is_empty(),
+        "{after:?}"
+    );
+    assert!(state.pending_env_warnings.is_empty());
+}
+
+#[test]
+fn queued_warnings_flush_once_after_settled_panel_in_every_finish_path() {
+    for mode in ["ready", "failed", "cancelled", "drop"] {
+        let text = queued_warning_output(mode);
+        assert_final_snapshot(&text, mode);
+    }
+}
+
+fn assert_final_snapshot(text: &str, mode: &str) {
+    assert!(text.contains("⚠ post_startup — empty values in post.env"));
+    assert_eq!(text.matches("POST_KEY").count(), 1);
+    let marker = text
+        .find("after finish")
+        .unwrap_or_else(|| panic!("finish marker missing: {text}"));
+    let before_followup = &text[..marker];
+    let final_start = before_followup
+        .rfind("✓ Engine Ready")
+        .unwrap_or_else(|| panic!("header missing: {text}"));
+    let final_text = &before_followup[final_start..];
+    for header in ["✓ Engine Ready", "Downloads No downloads", "Containers "] {
+        assert!(
+            final_text.contains(header),
+            "{mode}, missing {header}: {text}"
+        );
+    }
+    let alpha = final_text
+        .find("alpha ready")
+        .or_else(|| final_text.find("alpha Cancelled"))
+        .unwrap_or_else(|| panic!("alpha final row missing: {text}"));
+    let aw = final_text
+        .find("⚠ alpha — empty values in alpha.env")
+        .unwrap();
+    let ax = final_text
+        .find("⚠ alpha — empty values in alpha.extra.env")
+        .unwrap();
+    let beta = final_text
+        .find("beta ready")
+        .or_else(|| final_text.find("✗ beta"))
+        .or_else(|| final_text.find("beta Failed"))
+        .or_else(|| final_text.find("beta Cancelled"))
+        .unwrap_or_else(|| panic!("beta final row missing: {text}"));
+    let bw = final_text
+        .find("⚠ beta — empty values in beta.env")
+        .unwrap();
+    assert!(
+        alpha < aw && aw < ax && ax < beta && beta < bw,
+        "{mode}: {final_text}"
+    );
+    assert!(
+        !final_text.contains("FOREIGN_KEY"),
+        "foreign warning leaked: {final_text}"
+    );
+    if mode == "ready" {
+        assert!(
+            final_text.contains("Containers Running (2/2)"),
+            "{final_text}"
+        );
+    }
+    assert!(final_text.contains("    ⚠ alpha"), "indent: {final_text}");
+    assert!(
+        final_text.contains("  ⚠ orphan"),
+        "orphan must be a sibling: {final_text}"
+    );
+    assert!(
+        !final_text.contains("    ⚠ orphan"),
+        "orphan must not look owned: {final_text}"
+    );
+    assert!(
+        !text.contains('\x1b'),
+        "NO_COLOR output contains ANSI: {text:?}"
+    );
+    assert_eq!(
+        final_text
+            .matches("⚠ alpha — empty values in alpha.env")
+            .count(),
+        1,
+        "{mode}: {text}"
+    );
+    assert_eq!(final_text.matches("ALPHA_KEY").count(), 1, "dedup: {text}");
+    assert!(
+        final_text.contains("⚠ orphan — empty values in orphan.env"),
+        "unmatched fallback missing: {text}"
+    );
+    assert!(
+        final_text.contains("TOKEN_SENTINEL"),
+        "fixture sentinel missing: {text}"
+    );
+    assert_eq!(
+        text.matches("⚠ alpha — empty values in alpha.env").count(),
+        1,
+        "replay: {text}"
+    );
+    assert!(
+        !text[marker..].contains("⚠ alpha"),
+        "next operation replay: {text}"
+    );
+}
+
+fn queued_warning_output(mode: &str) -> String {
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--ignored",
+            "--exact",
+            if mode == "standalone" {
+                "report::terminal_tests::standalone_warning_fixture"
+            } else {
+                "report::terminal_tests::queued_warning_finish_fixture"
+            },
+            "--nocapture",
+        ])
+        .env("III_COMPOSE_WARNING_MODE", mode)
+        .env_remove("CLICOLOR_FORCE")
+        .env("NO_COLOR", "1")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    String::from_utf8(output.stderr).unwrap()
+}
+
+#[test]
+fn standalone_warnings_keep_source_indentation_and_worker_grouping_under_no_color() {
+    let text = queued_warning_output("standalone");
+    let lines: Vec<_> = text
+        .lines()
+        .filter(|line| {
+            line.contains("⚠")
+                || line.contains("FIRST_NAME")
+                || line.contains("SECOND_NAME")
+                || line.contains("-> ")
+                || line.contains("Set values")
+        })
+        .collect();
+    assert_eq!(
+        lines,
+        [
+            "⚠ alpha — empty values in alpha.env",
+            "  FIRST_NAME",
+            "    -> Not set in the system environment; variable left unset.",
+            "  SECOND_NAME",
+            "    -> Using values from the system environment.",
+            "  Set values in the env file or comment out unused entries.",
+            "⚠ beta — empty values in beta.env",
+            "    -> Using a value from the Compose environment section.",
+            "  Set values in the env file or comment out unused entries.",
+        ]
+    );
+    assert!(
+        !text.contains('\x1b'),
+        "NO_COLOR output contains ANSI: {text:?}"
+    );
+}
+
+#[tokio::test]
+#[ignore = "subprocess fixture for standalone environment warning output"]
+async fn standalone_warning_fixture() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    empty_env_warnings(&[
+        EmptyEnvDiagnostic {
+            worker: "alpha".into(),
+            path: "alpha.env".into(),
+            name: "FIRST_NAME".into(),
+            source: EmptyValueSource::SystemUnset,
+        },
+        EmptyEnvDiagnostic {
+            worker: "alpha".into(),
+            path: "alpha.env".into(),
+            name: "SECOND_NAME".into(),
+            source: EmptyValueSource::SystemNonEmpty,
+        },
+        EmptyEnvDiagnostic {
+            worker: "beta".into(),
+            path: "beta.env".into(),
+            name: "BETA_NAME".into(),
+            source: EmptyValueSource::ComposeEnvironmentNonEmpty,
+        },
+    ]);
+}
+
+#[test]
+fn foreign_env_warning_lines_identify_project_without_relabeling_panel() {
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--ignored",
+            "--exact",
+            "report::terminal_tests::foreign_env_warning_fixture",
+            "--nocapture",
+        ])
+        .env("NO_COLOR", "1")
+        .env_remove("CLICOLOR_FORCE")
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    let foreign_lines: Vec<_> = stderr
+        .lines()
+        .filter(|line| line.contains("FOREIGN_SENTINEL") || line.contains("Not set in the system"))
+        .collect();
+    assert_eq!(foreign_lines.len(), 2, "{stderr}");
+    assert!(
+        foreign_lines
+            .iter()
+            .all(|line| line.contains("/tmp/other-warning-project: ")),
+        "{foreign_lines:#?}"
+    );
+    let foreground_lines: Vec<_> = stderr
+        .lines()
+        .filter(|line| {
+            line.contains("FOREGROUND_SENTINEL") || line.contains("Using values from the system")
+        })
+        .collect();
+    assert_eq!(foreground_lines.len(), 2, "{stderr}");
+    assert!(
+        foreground_lines
+            .iter()
+            .all(|line| !line.contains("/tmp/other-warning-project: ")),
+        "{foreground_lines:#?}"
+    );
+    assert!(
+        !stderr.contains('\x1b'),
+        "NO_COLOR emitted ANSI: {stderr:?}"
+    );
+}
+
+#[tokio::test]
+#[ignore = "subprocess fixture for foreign environment warning attribution"]
+async fn foreign_env_warning_fixture() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    let project_a = Path::new("/tmp/foreground-warning-project");
+    let mut startup = StartupProgress::start(true, project_a);
+    startup.engine_ready();
+    plan(&[("api".into(), 0)]);
+    starting("api", "waiting");
+    in_project_scope(project_a, async {
+        empty_env_warnings(&[EmptyEnvDiagnostic {
+            worker: "api".into(),
+            path: "worker.env".into(),
+            name: "FOREGROUND_SENTINEL".into(),
+            source: EmptyValueSource::SystemNonEmpty,
+        }]);
+    })
+    .await;
+    in_project_scope(Path::new("/tmp/other-warning-project"), async {
+        empty_env_warnings(&[EmptyEnvDiagnostic {
+            worker: "api".into(),
+            path: "worker.env".into(),
+            name: "FOREIGN_SENTINEL".into(),
+            source: EmptyValueSource::SystemUnset,
+        }]);
+    })
+    .await;
+    {
+        let state = console().lock().unwrap();
+        assert!(
+            !state
+                .pending_env_warnings
+                .iter()
+                .any(|warning| warning.name == "FOREIGN_SENTINEL")
+        );
+        assert!(
+            !state
+                .settled_env_warnings
+                .iter()
+                .any(|warning| warning.name == "FOREIGN_SENTINEL")
+        );
+        assert!(!compose_rows(&state).iter().any(
+            |row| matches!(&row.state, RowState::Warning(text) if text.contains("FOREIGN_SENTINEL"))
+        ));
+    }
+    ready("api", Duration::ZERO);
+    startup.finish(true, "Ready");
+    let state = console().lock().unwrap();
+    assert!(
+        !state
+            .pending_env_warnings
+            .iter()
+            .any(|warning| warning.name == "FOREIGN_SENTINEL")
+    );
+    assert!(
+        !state
+            .settled_env_warnings
+            .iter()
+            .any(|warning| warning.name == "FOREIGN_SENTINEL")
+    );
+    assert!(!compose_rows(&state).iter().any(
+        |row| matches!(&row.state, RowState::Warning(text) if text.contains("FOREIGN_SENTINEL"))
+    ));
+}
+
+#[tokio::test]
+#[ignore = "subprocess fixture for queued environment warning finish paths"]
+async fn queued_warning_finish_fixture() {
+    use crate::config::{EmptyEnvDiagnostic, EmptyValueSource};
+    let mut progress = StartupProgress::start(true, Path::new("/tmp/warning-fixture"));
+    progress.engine_ready();
+    containers_starting();
+    plan(&[("alpha".to_string(), 0), ("beta".to_string(), 0)]);
+    ready("alpha", Duration::from_millis(5));
+    starting("beta", "waiting");
+    in_project_scope(Path::new("/tmp/other-warning-project"), async {
+        empty_env_warnings(&[EmptyEnvDiagnostic {
+            worker: "foreign".into(),
+            path: "foreign.env".into(),
+            name: "FOREIGN_KEY".into(),
+            source: EmptyValueSource::SystemUnset,
+        }]);
+    })
+    .await;
+    assert!(console().lock().unwrap().pending_env_warnings.is_empty());
+    empty_env_warnings(&[
+        EmptyEnvDiagnostic {
+            worker: "alpha".into(),
+            path: "alpha.env".into(),
+            name: "ALPHA_KEY".into(),
+            source: EmptyValueSource::SystemUnset,
+        },
+        EmptyEnvDiagnostic {
+            worker: "alpha".into(),
+            path: "alpha.env".into(),
+            name: "ALPHA_KEY".into(),
+            source: EmptyValueSource::SystemUnset,
+        },
+        EmptyEnvDiagnostic {
+            worker: "alpha".into(),
+            path: "alpha.extra.env".into(),
+            name: "ALPHA_OTHER".into(),
+            source: EmptyValueSource::SystemNonEmpty,
+        },
+        EmptyEnvDiagnostic {
+            worker: "orphan".into(),
+            path: "orphan.env".into(),
+            name: "TOKEN_SENTINEL".into(),
+            source: EmptyValueSource::SystemUnset,
+        },
+        EmptyEnvDiagnostic {
+            worker: "beta".into(),
+            path: "beta.env".into(),
+            name: "BETA_KEY".into(),
+            source: EmptyValueSource::SystemUnset,
+        },
+    ]);
+    std::thread::sleep(Duration::from_millis(30));
+    match std::env::var("III_COMPOSE_WARNING_MODE").as_deref() {
+        Ok("ready") => {
+            ready("beta", Duration::from_millis(5));
+            progress.finish(true, "Ready");
+        }
+        Ok("failed") => {
+            failed("beta", "TEST_FAILED", "intentional test failure");
+            progress.finish(false, "Failed");
+        }
+        Ok("cancelled") => {
+            progress.finish(false, "Cancelled");
+        }
+        Ok("drop") => drop(progress),
+        other => panic!("unknown fixture mode: {other:?}"),
+    }
+    line("after finish");
+    empty_env_warnings(&[EmptyEnvDiagnostic {
+        worker: "post_startup".into(),
+        path: "post.env".into(),
+        name: "POST_KEY".into(),
+        source: EmptyValueSource::SystemUnset,
+    }]);
+    {
+        let state = console().lock().unwrap();
+        assert!(
+            state.startup.is_some(),
+            "upstream persistent panel was lost"
+        );
+        assert!(
+            state.pending_env_warnings.is_empty(),
+            "post-startup warning was stranded"
+        );
+        assert!(!state.settled_env_warnings.is_empty());
+    }
+    mutation_begin(Path::new("/tmp/warning-fixture"));
+    assert!(console().lock().unwrap().settled_env_warnings.is_empty());
+    let mut next = StartupProgress::start(true, Path::new("/tmp/warning-fixture"));
+    next.finish(true, "Ready");
+    std::thread::sleep(Duration::from_millis(50));
 }
