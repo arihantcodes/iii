@@ -199,6 +199,21 @@ async fn up_inner(
     operation_id: String,
     shutdown: Option<crate::shutdown::ShutdownSignal>,
 ) -> Option<OpResult> {
+    report::in_project_scope(
+        &ctx.file.path,
+        up_scoped(ctx, children, records, target, operation_id, shutdown),
+    )
+    .await
+}
+
+async fn up_scoped(
+    ctx: &LifecycleCtx<'_>,
+    children: &mut Children,
+    records: &mut BTreeMap<String, ChildRecord>,
+    target: Option<&str>,
+    operation_id: String,
+    shutdown: Option<crate::shutdown::ShutdownSignal>,
+) -> Option<OpResult> {
     let began = Instant::now();
     let order = match plan_targets(ctx.file, target) {
         Ok(order) => order,
@@ -218,7 +233,12 @@ async fn up_inner(
 
     // Everything this operation will touch, drawn before any of it moves, so an
     // operator sees the shape rather than a line at a time.
-    report::plan(&dag::outline(ctx.file, &order));
+    let versions = version_labels(ctx.file, order.iter().map(String::as_str));
+    if target.is_none() {
+        report::plan_full_labeled(&dag::outline(ctx.file, &order), &versions);
+    } else {
+        report::plan_labeled(&dag::outline(ctx.file, &order), &versions);
+    }
     if let Some(operation) = crate::operation::active(&operation_id) {
         let outline = dag::outline(ctx.file, &order);
         operation.plan(outline.len()).await;
@@ -492,6 +512,22 @@ async fn restart_one_inner(
     shutdown: Option<crate::shutdown::ShutdownSignal>,
     retry: Option<(u32, u32)>,
 ) -> Option<OpResult> {
+    report::in_project_scope(
+        &ctx.file.path,
+        restart_one_scoped(ctx, children, records, key, operation_id, shutdown, retry),
+    )
+    .await
+}
+
+async fn restart_one_scoped(
+    ctx: &LifecycleCtx<'_>,
+    children: &mut Children,
+    records: &mut BTreeMap<String, ChildRecord>,
+    key: &str,
+    operation_id: String,
+    shutdown: Option<crate::shutdown::ShutdownSignal>,
+    retry: Option<(u32, u32)>,
+) -> Option<OpResult> {
     let began = Instant::now();
     if !ctx.file.containers.contains_key(key) {
         let error = ComposeError::UnknownContainer {
@@ -510,7 +546,7 @@ async fn restart_one_inner(
     if let Some((attempt, total_attempts)) = retry {
         report::retry_starting(key, attempt, total_attempts);
     } else {
-        report::plan(&[(key.to_string(), 0)]);
+        report::plan_labeled(&[(key.to_string(), 0)], &version_labels(ctx.file, [key]));
     }
     let stopped = stop_one(ctx, children, records, key).await;
 
@@ -628,6 +664,20 @@ pub async fn remove_one(
     key: &str,
     operation_id: String,
 ) -> OpResult {
+    report::in_project_scope(
+        &ctx.file.path,
+        remove_one_scoped(ctx, children, records, key, operation_id),
+    )
+    .await
+}
+
+async fn remove_one_scoped(
+    ctx: &LifecycleCtx<'_>,
+    children: &mut Children,
+    records: &mut BTreeMap<String, ChildRecord>,
+    key: &str,
+    operation_id: String,
+) -> OpResult {
     let began = Instant::now();
     if !ctx.file.containers.contains_key(key) {
         let error = ComposeError::UnknownContainer {
@@ -697,6 +747,20 @@ pub async fn down(
     target: Option<&str>,
     operation_id: String,
 ) -> OpResult {
+    report::in_project_scope(
+        &ctx.file.path,
+        down_scoped(ctx, children, records, target, operation_id),
+    )
+    .await
+}
+
+async fn down_scoped(
+    ctx: &LifecycleCtx<'_>,
+    children: &mut Children,
+    records: &mut BTreeMap<String, ChildRecord>,
+    target: Option<&str>,
+    operation_id: String,
+) -> OpResult {
     let began = Instant::now();
     let mut order = match plan_targets(ctx.file, target) {
         Ok(order) => order,
@@ -745,6 +809,11 @@ pub async fn down(
         });
     }
 
+    let cancelled = results
+        .iter()
+        .map(|result| result.container.clone())
+        .collect::<Vec<_>>();
+    report::retries_cancelled(&cancelled);
     let changed = results.iter().filter(|result| result.changed).count();
     report::summary_ok("down", changed, results.len(), began.elapsed());
     OpResult {
@@ -1459,6 +1528,21 @@ fn plan_targets(file: &ComposeFile, target: Option<&str>) -> Result<Vec<String>>
         .into_iter()
         .filter(|key| closure.contains(key))
         .collect())
+}
+
+/// The version each planned worker shows beside its name in the panel.
+fn version_labels<'a>(
+    file: &ComposeFile,
+    keys: impl IntoIterator<Item = &'a str>,
+) -> Vec<(String, Option<String>)> {
+    keys.into_iter()
+        .map(|key| {
+            (
+                key.to_string(),
+                file.containers.get(key).and_then(Container::version_label),
+            )
+        })
+        .collect()
 }
 
 fn failed_op(operation_id: String, target: Option<&str>, error: &ComposeError) -> OpResult {
