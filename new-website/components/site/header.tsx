@@ -15,6 +15,7 @@ import {
   IconLinkedIn,
   IconPackage,
   IconPaper,
+  IconStar,
   IconX,
 } from '@/components/icons/iconly'
 import { buttonVariants } from '@/components/ui/button'
@@ -48,6 +49,12 @@ const plainLinks = [
 ]
 
 const focusRing = 'outline-none focus-visible:outline-2 focus-visible:outline-foreground focus-visible:outline-offset-2'
+
+/** Resting nav text: one step brighter than `muted-foreground` so the links read without competing with the page. */
+const navText = 'text-foreground/75'
+
+/** GitHub's own starred-repo yellow (dark theme). */
+const githubStar = 'group-hover:text-[#e3b341] group-focus-visible:text-[#e3b341]'
 
 export function Header({ stats }: { stats: CommunityStats }) {
   const { scrollY } = useScroll()
@@ -118,6 +125,7 @@ export function Header({ stats }: { stats: CommunityStats }) {
                 count={stats.starsCount}
                 format="plain"
                 icon={IconGitHub}
+                star
               />
               <StatLink
                 href={links.discord}
@@ -129,13 +137,13 @@ export function Header({ stats }: { stats: CommunityStats }) {
                 icon={IconDiscord}
               />
               <a
-                href={links.quickstart}
+                href={links.install}
                 className={cn(
                   buttonVariants(),
                   'group ml-1.5 hidden h-8 rounded-xl pr-2.5 pl-3 text-[13px] xl:inline-flex',
                 )}
               >
-                Run the quickstart
+                Install iii
                 <ArrowRightIcon className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
               </a>
               <MenuButton open={mobileOpen} onToggle={() => setMobileOpen((o) => !o)} />
@@ -160,6 +168,7 @@ function StatLink({
   format,
   delay,
   icon: Icon,
+  star = false,
 }: {
   href: string
   label: string
@@ -168,6 +177,8 @@ function StatLink({
   format: 'plain' | 'compact'
   delay?: number
   icon: Icon
+  /** Prefix the count with a star that turns GitHub yellow on hover (the GitHub stars link). */
+  star?: boolean
 }) {
   if (!value) return null
   return (
@@ -175,12 +186,24 @@ function StatLink({
       href={href}
       aria-label={`${label}: ${value}`}
       className={cn(
-        'group hidden h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] text-muted-foreground tabular-nums transition-colors hover:bg-foreground/[0.05] hover:text-foreground lg:inline-flex',
+        'group hidden h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] tabular-nums transition-colors hover:bg-foreground/[0.05] hover:text-foreground lg:inline-flex',
+        navText,
         focusRing,
       )}
     >
-      <Icon className="size-4 text-foreground/80 transition-[color,transform] duration-200 ease-out group-hover:scale-105 group-hover:text-foreground" />
-      {count === null ? value : <CountUp value={count} format={format} delay={delay} />}
+      <Icon className="size-4 text-foreground/85 transition-[color,transform] duration-200 ease-out group-hover:scale-105 group-hover:text-foreground" />
+      <span className="flex items-center gap-1">
+        {star ? (
+          // A fifth of a turn lands the star back on its own outline, so it reads as a twinkle, not a spin.
+          <IconStar
+            className={cn(
+              'size-3.5 text-foreground/55 transition-[color,rotate,scale] duration-300 ease-out motion-safe:group-hover:rotate-[72deg] motion-safe:group-hover:scale-110',
+              githubStar,
+            )}
+          />
+        ) : null}
+        {count === null ? value : <CountUp value={count} format={format} delay={delay} />}
+      </span>
     </a>
   )
 }
@@ -237,7 +260,8 @@ function DesktopNav({ community }: { community: MenuLink[] }) {
 }
 
 const triggerClass = cn(
-  'group relative inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground data-[popup-open]:text-foreground',
+  'group relative inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] transition-colors hover:text-foreground data-[popup-open]:text-foreground',
+  navText,
   focusRing,
 )
 
@@ -285,10 +309,10 @@ function MenuRow({ item, index }: { item: MenuLink; index: number }) {
           focusRing,
         )}
       >
-        <item.icon className="size-4 text-muted-foreground transition-colors group-hover/row:text-foreground" />
+        <item.icon className="size-4 text-foreground/75 transition-colors group-hover/row:text-foreground" />
         <span className="flex-1 truncate">{item.title}</span>
         {item.meta ? (
-          <span className="font-sans text-[11.5px] text-muted-foreground tabular-nums">{item.meta}</span>
+          <span className="font-sans text-[11.5px] text-foreground/75 tabular-nums">{item.meta}</span>
         ) : null}
       </NavigationMenu.Link>
     </motion.div>
@@ -389,8 +413,8 @@ function MobilePanel({ community, onNavigate }: { community: MenuLink[]; onNavig
           transition={{ duration: 0.35, delay: 0.1 + stagger * 0.7 * index, ease: easeOut }}
           className="flex items-center gap-2 px-1 pt-2"
         >
-          <a href={links.quickstart} className={cn(buttonVariants(), 'h-10 flex-1')}>
-            Run the quickstart
+          <a href={links.install} className={cn(buttonVariants(), 'h-10 flex-1')}>
+            Install iii
           </a>
         </motion.div>
       </div>

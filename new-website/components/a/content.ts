@@ -4,15 +4,20 @@
  */
 
 export const hero = {
-  pronounced: 'iii, pronounced "three i"',
+  /* The three-i glyph in the pill reads as the three primitives: everything in iii is one of these. */
+  eyebrow: 'Three primitives: Function, Trigger, Worker',
   /* Reviewer: "iii isn't just backend" → "More application. Less infrastructure." */
   headline: ['More application.', 'Less infrastructure.'],
+  /* 2026-10-05 sync: the doc's subtitle is folded into the copy, one paragraph under the headline. The hero sets the
+     subtitle sentence in the foreground colour so the value line still carries weight. */
   copy: 'Connect any functions, agents, APIs, models, browsers, infrastructure, and machines into one live, composable system.',
+  subtitle: 'The convenience of a platform, without the lock-in.',
   /* Anthony: the hero CTA sends people to the install page, not the quickstart. */
   cta: { label: 'Get started', href: 'https://iii.dev/docs/install' },
   secondary: { label: 'View GitHub', href: 'https://github.com/iii-hq/iii' },
   updates: 'Release notes and new workers, by email',
-  /* The install block replaces the two CTA buttons. Commands and notes come from iii.dev/docs/install. */
+  /* The install block replaces the two CTA buttons. Commands and notes come from iii.dev/docs/install.
+     2026-10-05 sync: no `workers` tab, it is internal jargon to a newcomer. */
   install: {
     tabs: [
       {
@@ -48,16 +53,6 @@ export const hero = {
           },
         ],
       },
-      {
-        id: 'workers',
-        label: 'workers',
-        steps: [
-          {
-            note: 'Scaffold a harness project and add workers from the registry in one go.',
-            command: 'curl -fsSL https://install.iii.dev/iii/main/install.sh | sh -s -- --start-with database,storage',
-          },
-        ],
-      },
     ],
     /* Left side of the CTA row; the card sits on the right. */
     title: 'Install iii in one command.',
@@ -79,144 +74,63 @@ export const overview = {
   eyebrow: 'Overview',
   title: "Code shouldn't care where code runs.",
   subtitle: 'One engine. Any workload.',
-  problem: 'Functions are stuck inside the language, process, cloud, and sometimes the machine they were written for.',
-  agitation:
+  /* Anthony (2026-10-05 sync): no problem / cost / solution labels, just three plain paragraphs. */
+  paragraphs: [
+    'Functions are stuck inside the language, process, cloud, and sometimes the machine they were written for.',
     'Connecting them means integrating discovery, invocation, retries, error handling, and tracing by hand, again and again, for every new boundary.',
-  solution:
     'Functions can live in different languages, processes, runtimes, and machines. iii makes them callable as if they were local.',
-  /* Reviewer: show the graph being fed from the registry too: an agent or a human installs or writes a worker. */
-  pulls: [
-    { who: 'agent', verb: 'installs from the registry', what: 'browser@1.8.0' },
-    { who: 'agent', verb: 'writes its own worker', what: 'extract::text' },
-    { who: 'human', verb: 'installs from the registry', what: 'postgres@3.0.4' },
   ],
 }
 
 export const demo = {
   eyebrow: 'Live demo',
   title: 'Watch iii execute.',
-  subtitle: 'One request. An entire system comes alive.',
-  solution: 'This is the moment it clicks: iii is the thing connecting and executing all of this.',
-  prompt: 'Review the open PRs on iii-hq/workers and post a digest to #releases',
-  views: ['Graph', 'Code', 'Trace'] as const,
+  subtitle: 'Follow one request through the code, the workers, and the trace. Every call goes through iii.',
+  prompt: 'Summarize the open PRs on iii-hq/workers.',
 }
 
 export const story = {
   eyebrow: 'C.O.D.E.R.',
+  title: 'Build it up. See it work.',
+  description: 'Start with HTTP and a database. Build, trace, and extend the same system as you scroll.',
   compose: {
     letter: 'C',
     name: 'Composability',
-    title: 'Use the right language for the job. Together.',
-    subtitle: 'Everything can work with everything else.',
-    tagline: 'No integration cruft.',
-    solution:
-      "iii doesn't force your whole system into one runtime. Functions written in different languages compose into the same execution graph.",
-    rows: [
-      ['TypeScript', 'Python'],
-      ['Python', 'Rust'],
-      ['Rust', 'Browser'],
-      ['Browser', 'GPU'],
-      ['GPU', 'Database'],
-      ['Database', 'Agent'],
-    ],
-    /* Anthony: compose covers registry workers and the ones you write, then the functions between them. */
-    files: [
-      {
-        name: 'worker-compose-local.yaml',
-        lang: 'yaml' as const,
-        code: [
-          'workers:',
-          '  github:   { from: registry, version: 1.4.2 }',
-          '  browser:  { from: registry, version: 1.8.0 }',
-          '  postgres: { from: registry, version: 3.0.4 }',
-          '  extract:  { path: ./workers/extract }      # yours',
-        ],
-      },
-      {
-        name: 'worker-compose-gpu.yaml',
-        lang: 'yaml' as const,
-        code: [
-          'workers:',
-          '  llm:   { from: registry, version: 2.3.0, device: cuda }',
-          '  embed: { path: ./workers/embed, device: cuda }  # yours',
-        ],
-      },
-    ],
-    chain: ['browser::act', 'extract::text', 'embed::vectors', 'pg::query'],
-    /* The same chain as code: four workers, three languages, one call site each. */
-    chainCode: [
-      "const html = await call('browser::act', { page })",
-      "const text = await call('extract::text', { html })",
-      "const vector = await call('embed::vectors', { text })",
-      "await call('pg::query', { sql: NEAREST, params: [vector] })",
-    ],
+    title: 'Start small. Work together.',
+    description:
+      'Add HTTP and a database with Compose, then connect your own code. Functions in different languages work together through the same engine.',
   },
   observe: {
     letter: 'O',
     name: 'Observability',
-    title: 'Every function is observable.',
-    subtitle: 'Execution is traced end to end, across languages and machines.',
-    tagline: 'One trace. Every hop.',
-    solution:
-      'Trace context follows every call across languages, queues, and machines. Logs attach to the span that wrote them. Nothing is instrumented by hand.',
-    /* Anthony: show the trace leaving the system too, over OTLP, not written to a summary. */
-    export: 'OTLP export · your observability stack',
-  },
-  extend: {
-    letter: 'E',
-    name: 'Extensibility',
-    title: 'Everything is extensible.',
-    subtitle: 'Give iii a capability. It joins the graph.',
-    tagline: 'Anything can become a Worker.',
-    solution: 'Workers expose capabilities, and iii makes those capabilities callable from anywhere.',
-    handoff:
-      'Nothing formatted a digest, so the harness wrote digest::format. It joined through the same Worker SDK as everything else.',
-    categories: [
-      { label: 'AI', items: ['OpenAI', 'Anthropic', 'Local models', 'Embedding', 'Judge'] },
-      { label: 'Compute', items: ['Sandbox', 'Docker', 'Kubernetes', 'Shell', 'GPU'] },
-      { label: 'Interaction', items: ['Browser', 'Computer', 'Filesystem'] },
-      { label: 'Data', items: ['Postgres', 'Redis', 'State', 'Cache', 'Vector DB'] },
-      { label: 'Connectivity', items: ['HTTP', 'WebSocket', 'Tailscale'] },
-      { label: 'Automation', items: ['Queue', 'Scheduler', 'Events'] },
-      { label: 'Developer', items: ['GitHub', 'Git', 'CI/CD'] },
-    ],
-    build: {
-      title: 'Build your own',
-      body: 'Anything with code becomes a service. Write a worker in any language and it joins the library.',
-    },
-    code: [
-      'const page = await iii.browser.navigate(url)',
-      'const result = await iii.python.analyze(page)',
-      'await iii.database.store(result)',
-    ],
+    title: 'Every call tells its story.',
+    description:
+      'Follow one request across languages and machines. Trace context travels with each call, and logs stay attached to the span that wrote them.',
   },
   discover: {
     letter: 'D',
     name: 'Discoverability',
-    title: "Your system can change while it's running.",
-    subtitle: 'Capabilities discover each other at runtime.',
-    tagline: 'The graph is alive.',
-    solution:
-      'Workers can join and leave at any time. Their capabilities are discovered in real time, and the graph updates without service disruption.',
-    /* Anthony: discovery takes the whole prompt, works out what satisfies it, then checks three levels in order:
-       the running system's own registry, workers.iii.dev, and finally writing a worker (which hands off to Extensibility). */
-    needs: ['github', 'browser', 'summarize', 'slack', 'digest'],
-    before: 'An agent asks "what can I do?" and gets a stale spec.',
-    after: 'A worker connects, its functions appear in the live list, and the agent uses them right away.',
+    title: 'Find what your system can do.',
+    description:
+      'Turn a request into the capabilities it needs. Search the running system for matching functions, and find workers in the registry when something is missing.',
+  },
+  extend: {
+    letter: 'E',
+    name: 'Extensibility',
+    title: 'Add a capability. Grow the graph.',
+    description:
+      'Compose adds workers and resolves their dependencies. Storage, a model provider, or a complete harness joins the same system, ready for other workers to use.',
   },
   react: {
     letter: 'R',
     name: 'Reactivity',
-    title: "Don't just call functions. React to them.",
-    subtitle: 'Calling says "do this." Observing says "when this happens, do this."',
-    tagline: "Observation isn't just telemetry. It's composition.",
-    before:
-      'github::pr::watch calls digest::format directly. Adding slack::post and a review step means editing pr::watch again.',
-    after: 'agent::review attaches as a new observer. github::pr::watch never changes.',
+    title: 'One event. Many reactions.',
+    description:
+      'Triggers make your system reactive. A pull request opens, and independent handlers review the code, notify the team, and run the tests.',
   },
   summary: {
     title: 'Built for C.O.D.E.R.',
-    subtitle: 'Five properties that turn isolated software into a live execution system.',
+    subtitle: 'Compose, observe, discover, extend, and react. All in the same system.',
     words: ['Composability', 'Observability', 'Discoverability', 'Extensibility', 'Reactivity'],
   },
 }
@@ -236,61 +150,165 @@ export const useCases = {
   eyebrow: 'Use cases',
   title: 'Build anything.',
   subtitle: "iii isn't an agent framework or a workflow engine. It's the engine underneath both.",
-  /* Reviewer: each tab links out to a use case page. Paths are placeholders until those pages exist. */
-  tabs: [
-    {
-      id: 'harness',
-      label: 'Agentic Harness',
-      problem: "Agents shouldn't need bespoke tools.",
-      solution:
-        'Give an agent access to iii and the graph becomes its capability layer. One unified set of functionality from your harness through to your production environment.',
-      fns: [
-        'browser::navigate',
-        'computer::click',
-        'database::query',
-        'sandbox::exec',
-        'github::create_pr',
-        'tailscale::devices',
-        'search::web',
+  /* 2026-10-05 sync: no graph here, no problem subtitles, no links until the use case pages exist. "Agentic
+     harness" became "Custom harness": we ship ours, and iii is how you build your own. App platform shows several
+     workloads as a run log (Mike: data pipelining, training, "a bunch of stuff"). Infrastructure reproduces the
+     compose terminal from iii-hq/iii#2263 spinning up the whole stack, as DOM lines rather than a video. */
+  harness: {
+    id: 'harness',
+    label: 'Custom harness',
+    title: 'Custom harness',
+    solution:
+      'Build an agent around your workflow. Choose models, tools, and session behavior while sharing the same functions as the rest of your system.',
+    session: {
+      label: 'Agent session',
+      request: 'Research these pull requests and prepare a release summary.',
+      steps: [
+        'Find the available GitHub functions',
+        'Read the open pull requests',
+        'Ask your chosen model for a summary',
       ],
-      href: '/use-cases/agentic-harness',
+      result: 'A release summary, ready for your team.',
     },
-    {
-      id: 'platform',
-      label: 'App Platform',
-      problem: 'Backends grow boundaries faster than features.',
-      solution:
-        'Build backends from functions running across languages, processes, and machines. React to events and coordinate long-running execution.',
-      fns: ['orders::create', 'pg::query', 'queue::push', 'cron::nightly', 'email::send', 'state::changed'],
-      href: '/use-cases/app-platform',
+  },
+  platform: {
+    id: 'platform',
+    label: 'App platform',
+    solution:
+      'Build backends from functions running across languages, processes, and machines. A trigger starts the work, iii runs every call, and one trace follows it to the end.',
+    picker: 'Workload',
+    /* Trigger types and registry function ids checked against iii-hq/workers (http, cron, queue, database, storage,
+       state, llm-router). Functions under your own namespace (orders::, etl::, reports::, train::, payments::) are
+       the code you write. */
+    workloads: [
+      {
+        id: 'api',
+        label: 'API backend',
+        detail: 'HTTP routes to functions in any language.',
+        trigger: { type: 'http', detail: 'POST /orders' },
+        calls: [
+          { fn: 'orders::create', worker: 'api · Python', detail: 'your code', ms: 92 },
+          { fn: 'database::execute', worker: 'database · Rust', detail: '1 row written', ms: 14 },
+          { fn: 'state::set', worker: 'state · Rust', detail: 'order status', ms: 3 },
+        ],
+        result: 'Order created. One request, one trace.',
+      },
+      {
+        id: 'pipeline',
+        label: 'Data pipeline',
+        detail: 'Durable queues feeding transforms and storage.',
+        trigger: { type: 'durable:subscriber', detail: 'queue=ingest' },
+        calls: [
+          { fn: 'etl::transform', worker: 'etl · Python', detail: '2,400 records', ms: 318 },
+          { fn: 'database::execute', worker: 'database · Rust', detail: '2,400 rows written', ms: 41 },
+          { fn: 'storage::put', worker: 'storage · Rust', detail: 'batch archived', ms: 27 },
+        ],
+        result: 'Batch processed. Retries and dead letters handled by the queue.',
+      },
+      {
+        id: 'scheduled',
+        label: 'Scheduled jobs',
+        detail: 'Cron expressions that call functions on time.',
+        trigger: { type: 'cron', detail: '0 0 9 * * * *' },
+        calls: [
+          { fn: 'reports::daily-summary', worker: 'reports · TypeScript', detail: 'your code', ms: 48 },
+          { fn: 'database::query', worker: 'database · Rust', detail: "yesterday's orders", ms: 22 },
+          { fn: 'router::chat', worker: 'llm-router · Rust', detail: 'summary via provider-anthropic', ms: 910 },
+          { fn: 'storage::put', worker: 'storage · Rust', detail: 'summary.md', ms: 19 },
+        ],
+        result: 'Daily summary written at 09:00. Every run traced.',
+      },
+      {
+        id: 'training',
+        label: 'Training job',
+        detail: 'Long-running work on the machines that have the hardware.',
+        trigger: { type: 'durable:subscriber', detail: 'queue=training' },
+        calls: [
+          { fn: 'train::epoch', worker: 'train · Python · GPU host', detail: 'epoch 12 of 50', ms: 184_000 },
+          { fn: 'storage::put', worker: 'storage · Rust', detail: 'checkpoint-12.pt', ms: 2_140 },
+          { fn: 'state::set', worker: 'state · Rust', detail: 'progress 24%', ms: 3 },
+        ],
+        result: 'Checkpoint saved. The next epoch is queued.',
+      },
+      {
+        id: 'webhooks',
+        label: 'Webhooks',
+        detail: 'Receive an event, record it, and fan it out.',
+        trigger: { type: 'http', detail: 'POST /webhooks/payments' },
+        calls: [
+          { fn: 'payments::record', worker: 'payments · TypeScript', detail: 'your code', ms: 31 },
+          { fn: 'database::execute', worker: 'database · Rust', detail: 'payment stored', ms: 12 },
+          { fn: 'iii::durable::publish', worker: 'queue · Rust', detail: 'queue=notify', ms: 4 },
+        ],
+        result: 'Payment recorded. Downstream consumers pick it up from the queue.',
+      },
+    ],
+  },
+  infra: {
+    id: 'infra',
+    label: 'Infrastructure',
+    title: 'Infrastructure',
+    solution:
+      'Define workers in a Compose file and run them on infrastructure you control. One command starts the engine and the whole stack, dependencies included.',
+    terminal: {
+      label: 'iii compose',
+      command: 'iii compose --up',
+      engine: 'iii 0.24.6',
+      /* Registry names from workers.iii.dev. `harness` pulls in its dependencies, shown indented under it. */
+      workers: [
+        { name: 'http', ms: 142 },
+        { name: 'database', ms: 233 },
+        { name: 'storage', ms: 198 },
+        { name: 'queue', ms: 176 },
+        { name: 'cron', ms: 121 },
+        { name: 'state', ms: 109 },
+        { name: 'harness', ms: 531 },
+        { name: 'llm-router', ms: 264, dep: true },
+        { name: 'provider-anthropic', ms: 212, dep: true },
+        { name: 'provider-openai', ms: 205, dep: true },
+        { name: 'context-manager', ms: 188, dep: true },
+        { name: 'session-manager', ms: 173, dep: true },
+        { name: 'judge', ms: 160, dep: true },
+      ],
+      done: 'open http://127.0.0.1:3113',
     },
-    {
-      id: 'infra',
-      label: 'Infrastructure',
-      problem: 'Every new machine is a new integration.',
-      solution:
-        'Connect remote computation and infrastructure automatically. Compose models, retrieval, sandboxes, tools, and data infrastructure with zero effort.',
-      fns: ['gpu::infer', 'vector::search', 'sandbox::run', 'tailscale::devices', 'k8s::scale', 's3::put'],
-      href: '/use-cases/infrastructure',
-    },
-  ],
+  },
 }
 
 /**
- * Numbers. Live values (stars, contributors, workers) are fetched at render time; the rest are the doc's
- * placeholders until the team picks the figures. Keep the same set on Version B.
+ * Numbers. The engine benchmarks the team supplied on 2026-10-07 (Mike's figures, runner details from Gui).
+ * Stars, contributors and workers already sit in Ownership directly above, so they are not repeated here.
+ * Keep the same set on Version B.
  */
 export const numbers = {
   eyebrow: 'Numbers',
   title: 'Built to execute.',
   metrics: [
-    { id: 'executions', value: 'XXM', label: 'function executions' },
-    { id: 'overhead', value: 'XX µs', label: 'runtime overhead per call' },
-    { id: 'discoverable', value: 'XXK', label: 'functions discoverable per engine' },
-    { id: 'workers', value: null, label: 'workers in the registry' },
-    { id: 'languages', value: '3', label: 'supported SDK languages' },
-    { id: 'stars', value: null, label: 'GitHub stars' },
+    {
+      id: 'invoke',
+      value: '1.9',
+      unit: 'µs',
+      label: 'per function call',
+      detail: '1 KB payload. 2.5 µs at 10 KB, 9.3 µs at 100 KB',
+    },
+    { id: 'concurrent', value: '2.8', unit: 'µs', label: 'per call, 128 at once', detail: '354 µs for all 128 calls' },
+    {
+      id: 'triggers',
+      value: '3.9',
+      unit: 'µs',
+      label: 'per event, 128 triggers at once',
+      detail: '500 µs for all 128 events',
+    },
+    { id: 'kv-read', value: '0.378', unit: 'µs', label: 'KV cache read', detail: '2.6M reads per second' },
+    { id: 'kv-write', value: '0.653', unit: 'µs', label: 'KV cache write', detail: '1.5M writes per second' },
+    { id: 'languages', value: '3', unit: null, label: 'SDK languages', detail: 'TypeScript, Python and Rust' },
   ],
+  footnote: {
+    setup:
+      'Measured on a standard GitHub-hosted runner (ubuntu-latest: 4 CPU cores, 16 GB RAM, 14 GB SSD, x64), with the benchmarks using all 4 cores.',
+    bench: 'We benchmark every change to iii as part of our performance analysis.',
+    link: { label: 'View the benchmarks', href: 'https://iii-hq.github.io/iii/dev/bench/' },
+  },
 }
 
 export const ownership = {
@@ -298,7 +316,26 @@ export const ownership = {
   title: 'An architecture you own, not a vendor-locked platform.',
   subtitle: 'The convenience of a platform, without the lock-in.',
   copy: 'iii is an engine you run yourself: on your laptop, your cloud, or your hardware. Your code not only stays yours but can be trivially migrated anywhere. Any worker can be swapped out, forked, or replaced. When pricing changes or a vendor changes direction, your architecture still belongs to you.',
-  environments: ['Local', 'Self-hosted', 'Cloud'],
+  /* Where each environment runs, in the copy's own words ("your laptop, your cloud, or your hardware"). */
+  environments: [
+    { name: 'Local', where: 'your laptop' },
+    { name: 'Self-hosted', where: 'your hardware' },
+    { name: 'Cloud', where: 'your cloud' },
+  ],
+  /* The app that moves between them: the engine plus registry workers (names from workers.iii.dev). */
+  app: { engine: 'iii engine', workers: ['http', 'database', 'state', 'harness'] },
+  /*
+   * Proof that people build on it, in the order the 2026-10-05 sync set: workers first, then contributors,
+   * then downloads. GitHub stars were dropped here ("not relevant to this particular detail").
+   */
+  stats: [
+    { id: 'workers', label: 'Workers in the registry' },
+    { id: 'contributors', label: 'Contributors' },
+    { id: 'npmWeek', label: 'npm downloads a week' },
+    { id: 'pypiWeek', label: 'PyPI downloads a week' },
+    { id: 'crates90d', label: 'crates.io downloads in 90 days' },
+    { id: 'dockerPulls', label: 'Docker Hub pulls' },
+  ],
 }
 
 export const finalCta = {

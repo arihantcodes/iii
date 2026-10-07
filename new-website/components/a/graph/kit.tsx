@@ -7,8 +7,8 @@ import { easeInOut, easeOut } from '@/lib/motion'
 import { ENGINE, type Point } from './model'
 
 export const ease = easeOut
-/** Global tempo: every transition in the graph runs 25% slower than its base value. */
-export const T = 1.25
+/** Global tempo multiplier on every transition in the graph. 1 = the base values as written. */
+export const T = 1
 
 /** Type sizes in viewBox units. The graph is 1040 wide and renders at about 760px in the slide column, so 16 ≈ 11.7px. */
 export const TYPE = { title: 16, sub: 15.5, tag: 15, label: 14.5 } as const
@@ -20,11 +20,14 @@ export const STROKE = 1.25
 
 type Tone = 'idle' | 'lit' | 'selected' | 'ghost'
 
+/** Neutral 600: a slot that is not live yet still reads as a dashed outline, not as nothing. */
+const GHOST = 'oklch(0.439 0 0)'
+
 const stroke: Record<Tone, string> = {
   idle: 'var(--line-strong)',
   lit: 'var(--hero-accent)',
   selected: 'var(--foreground)',
-  ghost: 'var(--line)',
+  ghost: GHOST,
 }
 
 type NodeProps = {
@@ -87,7 +90,7 @@ export function Node({
     <motion.g
       initial={false}
       animate={{ opacity: visible ? (faded ? 0.45 : 1) : 0, scale: visible ? 1 : 0.96 }}
-      transition={{ duration: 0.45 * T, delay: visible ? delay : 0, ease }}
+      transition={{ duration: 0.4 * T, delay: visible ? delay : 0, ease }}
       style={{ transformBox: 'fill-box', transformOrigin: 'center', pointerEvents: visible ? 'auto' : 'none' }}
       onClick={onClick}
       onKeyDown={
@@ -241,14 +244,14 @@ export function Wire({
     <motion.path
       d={d}
       fill="none"
-      stroke={tone === 'lit' ? 'var(--hero-accent)' : tone === 'ghost' ? 'var(--line)' : 'var(--line-strong)'}
+      stroke={stroke[tone]}
       strokeWidth={STROKE}
       strokeDasharray={dashed ? '3 6' : undefined}
       strokeLinecap="round"
       strokeLinejoin="round"
       initial={false}
       animate={{ pathLength: visible ? 1 : 0, opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.5 * T, delay: visible ? delay : 0, ease }}
+      transition={{ duration: 0.45 * T, delay: visible ? delay : 0, ease }}
       style={{ transition: 'stroke 300ms ease' }}
     />
   )
@@ -316,7 +319,7 @@ export function Flow({
         animate={{ pathLength: 1, opacity: [0, 1, 1, 0.35] }}
         transition={{
           pathLength: { duration: duration * T, delay: delay * T, ease: easeInOut },
-          opacity: { duration: duration * T * 2, delay: delay * T, times: [0, 0.05, 0.5, 1] },
+          opacity: { duration: duration * T * 1.5, delay: delay * T, times: [0, 0.05, 0.6, 1] },
         }}
       />
       <Runner points={points} delay={delay} duration={duration} tone={tone} />
@@ -347,13 +350,16 @@ export function EngineHub({
   pulseKey,
   lit,
   environments,
+  box = ENGINE,
 }: {
   pulseKey?: string | number
   lit?: boolean
   /** Second line, shown once the environments have merged into the engine. */
   environments?: string
+  /** Where to draw it; the system graph's engine slot by default. */
+  box?: { x: number; y: number; w: number; h: number }
 }) {
-  const { x, y, w, h } = ENGINE
+  const { x, y, w, h } = box
   const left = x - w / 2
   return (
     <g>
@@ -370,7 +376,7 @@ export function EngineHub({
           strokeWidth={STROKE}
           initial={{ opacity: 0.6, scale: 1 }}
           animate={{ opacity: 0, scale: 1.12 }}
-          transition={{ duration: 0.9 * T, ease: easeOut }}
+          transition={{ duration: 0.7 * T, ease: easeOut }}
           style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
         />
       ) : null}
@@ -411,7 +417,7 @@ export function EngineHub({
           fontSize={13.5}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 * T }}
+          transition={{ duration: 0.3 * T }}
         >
           {environments}
         </motion.text>

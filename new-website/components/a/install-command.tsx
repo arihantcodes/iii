@@ -56,10 +56,7 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
   return (
     <div className={cn('relative w-full min-w-0', className)}>
       {/* A faint pool of the hero accent under the card, so it reads as the lit object on the page. */}
-      <div
-        aria-hidden
-        className="-inset-x-8 -top-6 -bottom-10 -z-10 pointer-events-none absolute bg-[radial-gradient(60%_70%_at_50%_60%,color-mix(in_oklch,var(--hero-accent)_14%,transparent),transparent_70%)] blur-2xl"
-      />
+      <div aria-hidden className="-inset-x-8 -top-6 -bottom-10 -z-10 pointer-events-none absolute" />
       <div className="overflow-hidden rounded-2xl border bg-card text-left shadow-[0_1px_0_0_oklch(1_0_0/6%)_inset,0_24px_60px_-28px_oklch(0_0_0/70%)]">
         {/* Header: terminal mark, install paths, copy */}
         <div className="flex h-12 items-center gap-2 border-b bg-faint px-2.5 sm:px-3">
@@ -83,7 +80,7 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
                   role="tab"
                   id={`${id}-tab-${tab.id}`}
                   aria-selected={selected}
-                  aria-controls={`${id}-panel`}
+                  aria-controls={`${id}-panel-${tab.id}`}
                   tabIndex={selected ? 0 : -1}
                   onClick={() => select(tab.id)}
                   onKeyDown={(e) => {
@@ -139,42 +136,50 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
           </button>
         </div>
 
-        {/* The commands for the selected path */}
-        <div
-          id={`${id}-panel`}
-          role="tabpanel"
-          aria-labelledby={`${id}-tab-${active.id}`}
-          className="px-4 py-4 sm:px-5 sm:py-5"
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.ol
-              key={active.id}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: duration.base, ease: easeOut }}
-              className="-mx-4 flex flex-col gap-2.5 overflow-x-auto px-4 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] sm:-mx-5 sm:px-5 [&::-webkit-scrollbar]:hidden"
-            >
-              {active.commands.map((line) => (
-                <li key={line.command} className="flex w-max min-w-full items-start gap-3">
-                  <span
-                    aria-hidden
-                    className="select-none font-mono text-[14px] text-hero-accent leading-[1.7] sm:text-[15px]"
-                  >
-                    $
-                  </span>
-                  <code className="code-tokens whitespace-pre pr-6 font-mono text-[14px] text-foreground leading-[1.7] sm:text-[15px]">
-                    {line.tokens.map((token, position) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: Tokens are static per command and never reorder.
-                      <span key={position} style={token.style as CSSProperties}>
-                        {token.text}
-                      </span>
-                    ))}
-                  </code>
-                </li>
-              ))}
-            </motion.ol>
-          </AnimatePresence>
+        {/* Every path's commands share one grid cell, so the card is always as tall as the longest path (the
+            three-step `no llm`) and switching tabs never moves the page. Only the selected panel is visible. */}
+        <div className="grid px-4 py-4 sm:px-5 sm:py-5">
+          {tabs.map((tab) => {
+            const selected = tab.id === active.id
+            return (
+              <motion.ol
+                key={tab.id}
+                id={`${id}-panel-${tab.id}`}
+                role="tabpanel"
+                aria-labelledby={`${id}-tab-${tab.id}`}
+                aria-hidden={!selected}
+                inert={!selected}
+                initial={false}
+                animate={selected ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }}
+                transition={{
+                  duration: selected ? duration.base : duration.fast,
+                  delay: selected ? duration.fast * 0.5 : 0,
+                  ease: easeOut,
+                }}
+                className={cn('col-start-1 row-start-1 flex flex-col gap-2.5', !selected && 'pointer-events-none')}
+              >
+                {tab.commands.map((line) => (
+                  <li key={line.command} className="flex min-w-0 items-start gap-3">
+                    <span
+                      aria-hidden
+                      className="select-none font-mono text-[14px] text-hero-accent leading-[1.7] sm:text-[15px]"
+                    >
+                      $
+                    </span>
+                    {/* 2026-10-05 sync: a long command wraps onto a second line; it never clips and never scrolls. */}
+                    <code className="code-tokens min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] font-mono text-[14px] text-foreground leading-[1.7] sm:text-[15px]">
+                      {line.tokens.map((token, position) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: Tokens are static per command and never reorder.
+                        <span key={position} style={token.style as CSSProperties}>
+                          {token.text}
+                        </span>
+                      ))}
+                    </code>
+                  </li>
+                ))}
+              </motion.ol>
+            )
+          })}
         </div>
       </div>
     </div>

@@ -86,7 +86,7 @@ export function EmailSignup({ className }: { className?: string }) {
               name="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="your@email.here"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -106,8 +106,16 @@ export function EmailSignup({ className }: { className?: string }) {
           </motion.div>
         )}
       </AnimatePresence>
-      <output id={`${id}-status`} aria-live="polite" className="sr-only">
-        {state === 'invalid' ? 'Enter a valid email address.' : state === 'done' ? 'Subscribed.' : ''}
+      {/* The fix sits beside the field, visible, not only announced. */}
+      <output
+        id={`${id}-status`}
+        aria-live="polite"
+        className={cn(
+          'absolute top-full left-3.5 mt-1.5 font-sans text-[12.5px] text-fail',
+          state === 'invalid' ? '' : 'sr-only',
+        )}
+      >
+        {state === 'invalid' ? 'Enter an email address like name@example.com.' : state === 'done' ? 'Subscribed.' : ''}
       </output>
     </form>
   )
