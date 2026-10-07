@@ -32,8 +32,9 @@
 }
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  gap: clamp(40px, 5vw, 88px);
+  /* The animation takes about two thirds (2026-10-07 sync, Anthony); the text column stays a readable measure. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.85fr);
+  gap: clamp(36px, 4vw, 64px);
 }
 .chapters {
   min-width: 0;
@@ -48,16 +49,18 @@
 }
 .chapterLetter {
   font-family: var(--font-pixel);
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
   color: var(--hero-accent);
   text-transform: none;
+  /* The pixel face has one weight; a hairline stroke in its own colour reads as bold (2026-10-07: bolder CODER). */
+  -webkit-text-stroke: 0.045em currentColor;
 }
 .chapterTitle {
   margin-block-start: 22px;
   max-width: 540px;
-  font-size: clamp(30px, 2.9vw, 43px);
-  line-height: 1.13;
+  font-size: clamp(28px, 2.5vw, 38px);
+  line-height: 1.15;
   letter-spacing: -0.018em;
   text-wrap: balance;
 }
@@ -85,23 +88,35 @@
   border-block-end: 1px solid var(--border);
 }
 .chapterNav a {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   min-height: 44px;
   padding: 4px 10px 12px;
-  border-block-end: 2px solid transparent;
-  margin-block-end: -1px;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
 }
-.chapterNav a > span:first-child {
+.navLetter {
   font-family: var(--font-pixel);
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
+  -webkit-text-stroke: 0.045em currentColor;
 }
 .chapterNav a[aria-current] {
+  color: var(--foreground);
+}
+.chapterNav a[aria-current] .navLetter {
   color: var(--hero-accent);
-  border-block-end-color: var(--hero-accent);
+}
+.navIndicator {
+  position: absolute;
+  inset-inline: 6px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--hero-accent);
 }
 .chapterNav a:focus-visible {
   outline: 2px solid var(--foreground);
@@ -110,10 +125,6 @@
 }
 .navName {
   display: none;
-}
-.navNumber {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 .graph {
   min-width: 0;
@@ -268,18 +279,34 @@
   border-block-start: 1px solid var(--border);
   padding-block-start: 6px;
 }
-.playbackStatus {
-  margin-inline-end: auto;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
 .controls {
   display: flex;
   width: 100%;
   justify-content: flex-end;
   align-items: center;
-  gap: 4px;
+  gap: 16px;
+}
+/* How far the chapter has played: a hairline that fills beat by beat, in place of "3 / 7". */
+.progress {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--muted-foreground);
+  transform-origin: left;
+}
+.controls[data-playback="holding"] .progress > span {
+  background: var(--foreground);
+}
+/* Holds the chapters while they crossfade; the exiting one is popped out of flow on top of the entering one. */
+.previewFrame {
+  position: relative;
+  min-height: 590px;
 }
 .graph[data-stage="compose"] .node {
   width: 30%;
@@ -707,14 +734,10 @@
 }
 .recapLetter {
   font-family: var(--font-pixel);
-  font-size: 30px;
+  font-size: 32px;
   line-height: 1;
-  color: var(--muted-foreground);
-}
-.recapNumber {
-  font-size: 12px;
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  -webkit-text-stroke: 0.045em currentColor;
 }
 .recapName {
   font-size: 14px;
@@ -776,6 +799,12 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .progress > span {
+    transition: transform 360ms var(--motion-ease-out), background-color 200ms ease;
+  }
+  .chapterNav a {
+    transition: color 150ms ease;
+  }
   .node {
     transition:
       border-color 180ms ease-out,
@@ -796,18 +825,16 @@
     display: none;
   }
 }
-@media (min-width: 1600px) {
+@media (min-width: 1280px) {
   .navName {
     display: inline;
-  }
-  .navNumber {
-    display: none;
   }
 }
 @media (max-width: 1100px) {
   .layout {
     gap: 32px;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    /* Still the wider animation on small laptops (about 60%), just less than the two thirds above. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
   }
   .node {
     padding: 9px 8px;
@@ -869,10 +896,6 @@
   }
 }
 @media (max-width: 540px) {
-  .playbackStatus {
-    max-width: 110px;
-    font-size: 10px;
-  }
   .requestCalls li {
     grid-template-columns: 28px 12px 20px 12px minmax(0, 1fr);
     gap: 6px;
@@ -982,5 +1005,16 @@
   }
   .engine > span:last-child {
     font-size: 8px;
+  }
+}
+/* Press feedback (Emil: pressable things scale 0.97 on :active, 160ms ease-out). */
+@media (prefers-reduced-motion: no-preference) {
+  .summaryLink {
+    transition-property: background-color, scale;
+    transition-duration: 150ms, 160ms;
+    transition-timing-function: ease, var(--motion-ease-out);
+  }
+  .summaryLink:active {
+    scale: 0.97;
   }
 }

@@ -1,257 +1,49 @@
+/* Observability: three plain numbers, then the request trace. No charts (2026-10-07 sync). */
 .dashboard {
-  --obs-red: oklch(0.53 0.19 25);
-  --obs-success: var(--hero-accent);
-  --obs-server-error: var(--obs-red);
-  container-type: inline-size;
+  --enter: cubic-bezier(0.23, 1, 0.32, 1);
 }
 .dashboard[data-stage="observe"] {
   margin-block-start: 0;
 }
-:global(.dark) .dashboard {
-  --obs-red: oklch(0.72 0.17 25);
-}
-.metrics {
+.stats {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
-  gap: 10px;
-  padding: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block-end: 1px solid var(--border);
 }
-.metric {
+.stat {
   display: flex;
   flex-direction: column;
+  gap: 6px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--background);
-}
-.metricHeading {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  font-size: 12px;
-}
-.metricHeading strong {
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  font-size: 17px;
-  line-height: 1.2;
-}
-.errorMetric .metricHeading strong {
-  color: var(--obs-server-error);
-}
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-block: 8px 12px;
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-.legend li {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.legend li > span:first-child {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.legend li > span:last-child {
-  color: var(--muted-foreground);
-}
-.success {
-  color: var(--obs-success);
-}
-.serverError {
-  color: var(--obs-server-error);
-}
-.errorDescription {
-  margin-block: 8px 12px;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--muted-foreground);
-}
-.chart {
-  position: relative;
-  height: clamp(64px, calc(100svh - 700px), 128px);
-  margin-block-start: auto;
-  padding-inline-start: 27px;
-}
-.chartPlot {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-.chartPlot:has(.chartInput:focus-visible) {
-  outline: 2px solid var(--foreground);
-  outline-offset: 4px;
-  border-radius: 2px;
-}
-.chartPlot svg {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.chartPlot > .chartGhost {
-  position: absolute;
-  inset: 0;
-  color: var(--line-strong);
-}
-.chartReveal {
-  position: absolute;
-  inset: 0;
-}
-.chartInput {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  margin: 0;
+  padding: 26px 24px;
   opacity: 0;
-  cursor: crosshair;
-  touch-action: pan-y;
+  translate: 0 4px;
 }
-.crosshair {
-  position: absolute;
-  inset-block: 0;
-  border-inline-start: 1px dashed var(--muted-foreground);
-  pointer-events: none;
+.stats[data-on="true"] .stat {
+  opacity: 1;
+  translate: 0 0;
 }
-.crosshair > span {
-  position: absolute;
-  left: 0;
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--background);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: currentColor;
+.stat + .stat {
+  border-inline-start: 1px solid var(--border);
 }
-.metric:has(.chartTooltip) {
-  z-index: 3;
+.stat dt {
+  font-size: 12.5px;
+  color: var(--muted-foreground);
 }
-.chartTooltip {
-  position: absolute;
-  top: calc(100% + 8px);
-  z-index: 4;
-  width: min(200px, calc(100cqw - 56px));
-  padding: 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--popover);
-  color: var(--popover-foreground);
-  box-shadow: 0 6px 20px -6px rgb(0 0 0 / 30%);
-  cursor: default;
-  font-variant-numeric: tabular-nums;
-}
-.chartTooltip::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: -9px;
-  height: 9px;
-}
-.chartTooltip[data-side="start"] {
-  left: 0;
-}
-.chartTooltip[data-side="end"] {
-  right: 0;
-}
-.chartTooltip > p {
-  font-size: 12px;
+.stat dd {
+  font-size: 32px;
   font-weight: 500;
-  margin-block-end: 10px;
-}
-.chartTooltip dl {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 11.5px;
-}
-.chartTooltip dl > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-.chartTooltip dt {
-  color: var(--muted-foreground);
-}
-.chartTooltip dd {
-  font-family: var(--font-mono);
-}
-.tooltipTotal {
-  padding-block-start: 6px;
-  border-block-start: 1px solid var(--border);
-}
-.chartTooltip small {
-  display: block;
-  margin-block-start: 8px;
-  color: var(--muted-foreground);
-  font-size: 11.5px;
-}
-.footer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.inspectHint {
-  margin-inline-start: auto;
-  font-size: 12px;
-}
-.chartGrid {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  color: var(--muted-foreground);
 }
-.chartGrid > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 0;
+.trace {
+  padding-block: 22px 0;
 }
-.chartGrid > span::after {
-  content: "";
-  position: absolute;
-  inset-inline: 27px 0;
-  border-block-start: 1px solid var(--border);
-}
-.area {
-  fill: currentColor;
-  opacity: 0.1;
-}
-.line {
-  stroke: currentColor;
-  stroke-width: 1.5;
-  fill: none;
-}
-.chartRange {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  margin-block-start: 10px;
-  padding-inline-start: 27px;
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
-.request {
-  margin: 0 14px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--background);
+/* The wider column gives the trace room: taller rows read as a real trace view, not a list. */
+.trace li {
+  min-height: 52px;
 }
 .requestStatus {
   display: inline-flex;
@@ -263,67 +55,28 @@
   color: var(--foreground);
 }
 .traceSummary {
-  margin: 6px -16px -16px;
-  padding: 9px 16px;
+  margin: 16px -24px 0;
+  padding: 14px 24px;
   border-block-start: 1px solid var(--border);
   font-size: 12px;
   color: var(--muted-foreground);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .chartReveal[data-animate="true"] {
-    animation: chart-reveal 600ms var(--motion-ease-out) both;
-  }
-  @keyframes chart-reveal {
-    from {
-      clip-path: inset(0 100% 0 0);
-    }
-    to {
-      clip-path: inset(0 0 0 0);
-    }
+  .stat {
+    transition-property: opacity, translate;
+    transition-duration: 300ms;
+    transition-timing-function: var(--enter);
   }
 }
-@media (max-width: 959px), (max-height: 740px) {
-  .chart {
-    height: 110px;
+@media (max-width: 640px) {
+  .stat {
+    padding: 14px 12px;
   }
-}
-@media (min-width: 960px) and (min-height: 741px) and (max-height: 820px) {
-  .metrics {
-    padding-block: 10px;
+  .stat dd {
+    font-size: 20px;
   }
-}
-@container (max-width: 420px) {
-  .metrics {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .errorMetric {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: 8px 18px;
-  }
-  .errorMetric .metricHeading {
-    flex-direction: column;
-    gap: 6px;
-  }
-  .errorMetric .metricHeading strong {
-    font-size: 21px;
-  }
-  .errorDescription {
-    grid-column: 1;
-    grid-row: 2;
-    margin: 0;
-  }
-  .errorMetric .chart {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    height: 60px;
-  }
-  .errorMetric .chartRange {
-    grid-column: 2;
-    margin-block-start: 0;
-  }
-  .inspectHint {
-    display: none;
+  .traceSummary {
+    margin-inline: -16px;
+    padding-inline: 16px;
   }
 }

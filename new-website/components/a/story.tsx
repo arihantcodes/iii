@@ -1,12 +1,14 @@
 'use client'
 
 import { ArrowRightIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import { DemoPlayback } from '@/components/graphics/demo-playback'
 import { PixelHeading } from '@/components/site/pixel-heading'
 import { SectionRule } from '@/components/site/section-rule'
 import { useDemoPlayback } from '@/hooks/use-demo-playback'
+import { easeOut, spring } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 import { story } from './content'
@@ -25,16 +27,6 @@ import { useStoryPlayback } from './use-story-playback'
 export function Story() {
   const headingId = useId()
   const [stage, setStage] = useState<StoryStage>('compose')
-  const [inspections, setInspections] = useState<Set<string>>(() => new Set())
-  const inspectChart = useCallback((id: string, active: boolean) => {
-    setInspections((previous) => {
-      if (previous.has(id) === active) return previous
-      const next = new Set(previous)
-      if (active) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }, [])
   const [visibleChapters, setVisibleChapters] = useState<Partial<Record<StoryStage, boolean>>>({})
   const enterChapter = useCallback((next: StoryStage) => {
     setStage(next)
@@ -46,16 +38,18 @@ export function Story() {
     if (current) setStage(current)
   }, [])
   const { ref, running, paused, setPaused, reduce } = useDemoPlayback<HTMLDivElement>()
-  const inspecting = stage === 'observe' && inspections.size > 0
-  const chapterRunning = running && Boolean(visibleChapters[stage]) && !inspecting
+  const chapterRunning = running && Boolean(visibleChapters[stage])
   const playback = useStoryPlayback(stage, chapterRunning)
   const beat = reduce ? lastStoryBeat(stage) : playback.beat
   // The first beat animates too (it is the lead-in); only the held finished state is static.
   const animating = chapterRunning && playback.phase !== 'holding'
-  const playbackLabel = playbackStatus({ reduce, paused, inspecting, phase: playback.phase, stage, beat })
+  /* No step numbers (2026-10-07 sync): a hairline shows how far the chapter has played instead. */
+  const progress = reduce ? 1 : (beat + 1) / STORY_BEATS[stage].length
   const controls = (
     <div className={styles.controls} data-playback={reduce ? 'static' : playback.phase}>
-      <span className={styles.playbackStatus}>{playbackLabel}</span>
+      <span aria-hidden className={styles.progress}>
+        <span style={{ transform: `scaleX(${progress.toFixed(3)})` }} />
+      </span>
       {/* Pause only: every chapter loops on its own, so there is nothing to replay. */}
       <DemoPlayback paused={paused} reduce={reduce} onToggle={() => setPaused(!paused)} />
     </div>
@@ -82,12 +76,7 @@ export function Story() {
                 <StoryChapter key={chapter.id} chapter={chapter} onVisibility={chapterVisibility}>
                   <StoryActivity stage={chapter.id} beat={chapterBeat} running={active && animating} />
                   <div className={styles.mobileGraph}>
-                    <StoryPreview
-                      stage={chapter.id}
-                      beat={chapterBeat}
-                      running={active && animating}
-                      onInspectChange={inspectChart}
-                    />
+                    <StoryPreview stage={chapter.id} beat={chapterBeat} running={active && animating} />
                     {active ? controls : null}
                   </div>
                 </StoryChapter>
@@ -97,7 +86,7 @@ export function Story() {
           <div className={styles.desktopGraph}>
             <div className={styles.stickyGraph}>
               <nav aria-label="Explore CODER" className={styles.chapterNav}>
-                {STORY_STEPS.map((chapter, i) => (
+                {STORY_STEPS.map((chapter) => (
                   <a
                     key={chapter.id}
                     href={`#coder-${chapter.id}`}
@@ -105,13 +94,39 @@ export function Story() {
                     aria-current={stage === chapter.id ? 'step' : undefined}
                     onClick={() => enterChapter(chapter.id)}
                   >
-                    <span>{chapter.letter}</span>
+                    <span className={styles.navLetter}>{chapter.letter}</span>
                     <span className={styles.navName}>{chapter.name}</span>
-                    <span className={styles.navNumber}>0{i + 1}</span>
+                    {/* One indicator that slides between chapters instead of five that blink on and off. */}
+                    {stage === chapter.id ? (
+                      <motion.span
+                        layoutId="coder-nav-indicator"
+                        transition={spring.snappy}
+                        className={styles.navIndicator}
+                      />
+                    ) : null}
                   </a>
                 ))}
               </nav>
-              <StoryPreview stage={stage} beat={beat} running={animating} onInspectChange={inspectChart} />
+              {/* Chapters crossfade: the old one fades out fast, the new one rises in with a little blur. The frame
+                  keeps one minimum height so the sticky column never jumps as previews of different sizes swap. */}
+              <div className={styles.previewFrame}>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.div
+                    key={stage}
+                    initial={{ opacity: 0, transform: 'translateY(8px)', filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, transform: 'translateY(0px)', filter: 'blur(0px)' }}
+                    exit={{
+                      opacity: 0,
+                      transform: 'translateY(-4px)',
+                      filter: 'blur(2px)',
+                      transition: { duration: 0.16 },
+                    }}
+                    transition={{ duration: 0.32, ease: easeOut }}
+                  >
+                    <StoryPreview stage={stage} beat={beat} running={animating} />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
               <div className={styles.graphFooter}>{controls}</div>
             </div>
           </div>
@@ -127,14 +142,13 @@ export function Story() {
             <ArrowRightIcon aria-hidden strokeWidth={1.75} className={styles.summaryArrow} />
           </a>
           <ol className={styles.recap}>
-            {STORY_STEPS.map((chapter, i) => (
+            {STORY_STEPS.map((chapter) => (
               <li key={chapter.id}>
                 <a href={`#coder-${chapter.id}`} onClick={() => enterChapter(chapter.id)}>
                   <span className={styles.recapTop}>
                     <span aria-hidden className={styles.recapLetter}>
                       {chapter.letter}
                     </span>
-                    <span className={styles.recapNumber}>0{i + 1}</span>
                   </span>
                   <span className={styles.recapName}>{chapter.name}</span>
                   <span className={styles.recapTitle}>{chapter.title}</span>
@@ -148,20 +162,8 @@ export function Story() {
   )
 }
 
-function StoryPreview({
-  stage,
-  beat,
-  running,
-  onInspectChange,
-}: {
-  stage: StoryStage
-  beat: number
-  running: boolean
-  onInspectChange: (id: string, active: boolean) => void
-}) {
-  if (stage === 'observe') {
-    return <ObserveActivity beat={beat} running={running} onInspectChange={onInspectChange} />
-  }
+function StoryPreview({ stage, beat, running }: { stage: StoryStage; beat: number; running: boolean }) {
+  if (stage === 'observe') return <ObserveActivity beat={beat} running={running} />
   if (stage === 'discover') return <DiscoverPreview beat={beat} running={running} />
   if (stage === 'extend') return <ExtendPreview beat={beat} running={running} />
   if (stage === 'react') return <ReactPreview beat={beat} />
@@ -204,29 +206,6 @@ function StoryChapter({
       {children}
     </li>
   )
-}
-
-function playbackStatus({
-  reduce,
-  paused,
-  inspecting,
-  phase,
-  stage,
-  beat,
-}: {
-  reduce: boolean
-  paused: boolean
-  inspecting: boolean
-  phase: ReturnType<typeof useStoryPlayback>['phase']
-  stage: StoryStage
-  beat: number
-}) {
-  if (reduce) return 'Complete'
-  if (paused) return 'Paused'
-  if (inspecting) return 'Inspecting data'
-  if (phase === 'waiting') return 'Starting'
-  if (phase === 'holding') return 'Complete · looping'
-  return `${beat + 1} / ${STORY_BEATS[stage].length}`
 }
 
 function chapterAtReadingLine() {

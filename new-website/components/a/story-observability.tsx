@@ -4,22 +4,25 @@ import { cn } from '@/lib/utils'
 import shared from './story.module.css'
 import { OBSERVE_ELAPSED, STORY_TRACE, storyBeatDuration } from './story-model'
 import styles from './story-observability.module.css'
-import { ObservabilityChart } from './story-observability-chart'
 import { OBSERVABILITY_TOTALS } from './story-observability-data'
 import { TraceWaterfall } from './trace-waterfall'
 
-/** The observability chapter replaces the worker graph with inspectable function metrics and traces. */
-export function ObserveActivity({
-  beat,
-  running,
-  onInspectChange,
-}: {
-  beat: number
-  running: boolean
-  onInspectChange: (id: string, active: boolean) => void
-}) {
+const STATS = [
+  { label: 'Function calls', value: OBSERVABILITY_TOTALS.calls.toLocaleString('en-US') },
+  { label: 'Failed', value: OBSERVABILITY_TOTALS.failed.toLocaleString('en-US') },
+  {
+    label: 'Failure rate',
+    value: `${((OBSERVABILITY_TOTALS.failed / OBSERVABILITY_TOTALS.calls) * 100).toFixed(1)}%`,
+  },
+] as const
+
+/**
+ * Observability: three plain numbers for the day (2026-10-07 sync, Anthony: "keep the stats as plain numbers, no
+ * charts"), then one request traced across languages and machines. With the wider right column the trace gets the
+ * full width, so the chapter fills without adding more things to look at.
+ */
+export function ObserveActivity({ beat, running }: { beat: number; running: boolean }) {
   const complete = beat >= 5
-  const failureRate = ((OBSERVABILITY_TOTALS.failed / OBSERVABILITY_TOTALS.calls) * 100).toFixed(1)
   return (
     <figure
       className={cn(shared.activity, styles.dashboard)}
@@ -32,73 +35,41 @@ export function ObserveActivity({
           <IconActivity className="size-4" />
         </span>
         <span className={shared.activityLabel}>Observability</span>
-        <span className={shared.activityStatus}>Sample iii workload · 24h</span>
+        <span className={shared.activityStatus}>Sample iii workload · last 24h</span>
       </figcaption>
-      <div className={styles.metrics}>
-        <figure className={styles.metric}>
-          <figcaption className={styles.metricHeading}>
-            <span>Function calls</span>
-            <strong>{OBSERVABILITY_TOTALS.calls.toLocaleString('en-US')}</strong>
-          </figcaption>
-          <ul className={styles.legend}>
-            <li className={styles.success}>
-              <span aria-hidden />
-              <span>Completed</span>
-            </li>
-            <li className={styles.serverError}>
-              <span aria-hidden />
-              <span>Failed</span>
-            </li>
-          </ul>
-          <ObservabilityChart kind="calls" beat={beat} running={running} onInspectChange={onInspectChange} />
-          <ChartRange />
-        </figure>
-        <figure className={cn(styles.metric, styles.errorMetric)}>
-          <figcaption className={styles.metricHeading}>
-            <span>Failed calls</span>
-            <strong>{OBSERVABILITY_TOTALS.failed}</strong>
-          </figcaption>
-          <p className={styles.errorDescription}>{failureRate}% of function calls</p>
-          <ObservabilityChart kind="failures" beat={beat} running={running} onInspectChange={onInspectChange} />
-          <ChartRange />
-        </figure>
-      </div>
-      <div className={styles.request}>
-        <TraceWaterfall
-          compact
-          title="Request trace"
-          meta={
-            <span className={styles.requestStatus} data-complete={complete}>
-              <code>POST /orders</code>
-              <span aria-hidden>·</span>
-              {complete ? '128 ms total' : beat >= 2 ? 'Tracing' : 'Waiting for a request'}
-            </span>
-          }
-          ticks={['0', '32 ms', '64 ms', '96 ms', '128 ms']}
-          total={128}
-          spans={STORY_TRACE}
-          elapsed={OBSERVE_ELAPSED[beat] ?? 128}
-          active={complete ? undefined : STORY_TRACE.find((span) => span.at + 2 === beat)?.id}
-          running={running}
-          stepMs={storyBeatDuration('observe', beat)}
-        >
-          <p className={styles.traceSummary}>3 spans · 2 languages · local + cloud · one trace id</p>
-        </TraceWaterfall>
-      </div>
-      <div className={cn(shared.activityFooter, styles.footer)}>
-        <span>Exported over OTLP to your observability stack</span>
-        <span className={styles.inspectHint}>Hover or tap a chart to inspect</span>
-      </div>
+      <dl className={styles.stats} data-on={beat >= 1}>
+        {STATS.map((stat, i) => (
+          <div
+            key={stat.label}
+            className={styles.stat}
+            style={{ transitionDelay: beat === 1 ? `${i * 60}ms` : undefined }}
+          >
+            <dt>{stat.label}</dt>
+            <dd>{stat.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <TraceWaterfall
+        className={styles.trace}
+        title="Request trace"
+        meta={
+          <span className={styles.requestStatus}>
+            <code>POST /orders</code>
+            <span aria-hidden>·</span>
+            {complete ? '128 ms total' : beat >= 2 ? 'Tracing' : 'Waiting for a request'}
+          </span>
+        }
+        ticks={['0', '32 ms', '64 ms', '96 ms', '128 ms']}
+        total={128}
+        spans={STORY_TRACE}
+        elapsed={OBSERVE_ELAPSED[beat] ?? 128}
+        active={complete ? undefined : STORY_TRACE.find((span) => span.at + 2 === beat)?.id}
+        running={running}
+        stepMs={storyBeatDuration('observe', beat)}
+      >
+        <p className={styles.traceSummary}>3 spans · 2 languages · local + cloud · one trace id</p>
+      </TraceWaterfall>
+      <div className={shared.activityFooter}>Exported over OTLP to your observability stack</div>
     </figure>
-  )
-}
-
-function ChartRange() {
-  return (
-    <div className={styles.chartRange} aria-hidden>
-      <span>00:00</span>
-      <span>UTC</span>
-      <span>24:00</span>
-    </div>
   )
 }
