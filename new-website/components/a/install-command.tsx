@@ -59,7 +59,7 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
       <div aria-hidden className="-inset-x-8 -top-6 -bottom-10 -z-10 pointer-events-none absolute" />
       <div className="overflow-hidden rounded-2xl border bg-card text-left shadow-[0_1px_0_0_oklch(1_0_0/6%)_inset,0_24px_60px_-28px_oklch(0_0_0/70%)]">
         {/* Header: terminal mark, install paths, copy */}
-        <div className="flex h-12 items-center gap-2 border-b bg-faint px-2.5 sm:px-3">
+        <div className="flex h-11 items-center gap-2 border-b bg-faint px-2 sm:h-12 sm:px-3">
           <span
             aria-hidden
             className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground"
@@ -120,13 +120,15 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
               copied ? 'text-ok' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
           >
-            <AnimatePresence mode="wait" initial={false}>
+            {/* The two states swap in place (scale 0.25 → 1, blur 4px → 0, a spring with no bounce) instead of
+                waiting for one to leave before the other arrives. */}
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={copied ? 'done' : 'copy'}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: duration.fast, ease: easeOut }}
+                initial={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.25, filter: 'blur(4px)' }}
+                transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
                 className="flex items-center gap-1.5"
               >
                 {copied ? <IconTickSquare className="size-4" /> : <IconCopy className="size-4" />}
@@ -136,9 +138,11 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
           </button>
         </div>
 
-        {/* Every path's commands share one grid cell, so the card is always as tall as the longest path (the
-            three-step `no llm`) and switching tabs never moves the page. Only the selected panel is visible. */}
-        <div className="grid px-4 py-4 sm:px-5 sm:py-5">
+        {/* From `sm` up every path's commands share one grid cell, so the card is always as tall as the longest path
+            (the three-step `no llm`) and switching tabs never moves the page; the full command shows, wrapping if
+            it must. Phones: only the selected path takes space, so a one-line `curl` gets a one-line card, and each
+            command stays on one line while this area scrolls sideways under a fade on the right edge. */}
+        <div className="grid overflow-x-auto overscroll-x-contain px-4 py-3 [mask-image:linear-gradient(to_right,black_calc(100%-40px),transparent)] [scrollbar-width:none] sm:overflow-visible sm:px-5 sm:py-5 sm:[mask-image:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => {
             const selected = tab.id === active.id
             return (
@@ -150,24 +154,32 @@ export function InstallCommand({ tabs, className }: InstallCommandProps) {
                 aria-hidden={!selected}
                 inert={!selected}
                 initial={false}
-                animate={selected ? { opacity: 1, y: 0 } : { opacity: 0, y: -4 }}
+                animate={
+                  selected
+                    ? { opacity: 1, transform: 'translateY(0px)' }
+                    : { opacity: 0, transform: 'translateY(-4px)' }
+                }
                 transition={{
                   duration: selected ? duration.base : duration.fast,
                   delay: selected ? duration.fast * 0.5 : 0,
                   ease: easeOut,
                 }}
-                className={cn('col-start-1 row-start-1 flex flex-col gap-2.5', !selected && 'pointer-events-none')}
+                className={cn(
+                  'col-start-1 row-start-1 flex min-w-max flex-col gap-1.5 pr-10 sm:min-w-0 sm:gap-2.5 sm:pr-0',
+                  !selected && 'pointer-events-none max-sm:hidden',
+                )}
               >
                 {tab.commands.map((line) => (
-                  <li key={line.command} className="flex min-w-0 items-start gap-3">
+                  <li key={line.command} className="flex min-w-0 items-start gap-2.5 sm:gap-3">
                     <span
                       aria-hidden
-                      className="select-none font-mono text-[14px] text-hero-accent leading-[1.7] sm:text-[15px]"
+                      className="select-none font-mono text-[13px] text-hero-accent leading-[1.7] sm:text-[15px]"
                     >
                       $
                     </span>
-                    {/* 2026-10-05 sync: a long command wraps onto a second line; it never clips and never scrolls. */}
-                    <code className="code-tokens min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] font-mono text-[14px] text-foreground leading-[1.7] sm:text-[15px]">
+                    {/* Phones: one line, scrolled sideways. Wider: the full command, wrapping onto a second line if
+                        it has to, never clipped. */}
+                    <code className="code-tokens whitespace-pre font-mono text-[13px] text-foreground leading-[1.7] sm:min-w-0 sm:whitespace-pre-wrap sm:text-[15px] sm:[overflow-wrap:anywhere]">
                       {line.tokens.map((token, position) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: Tokens are static per command and never reorder.
                         <span key={position} style={token.style as CSSProperties}>
