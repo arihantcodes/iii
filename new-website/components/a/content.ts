@@ -327,14 +327,31 @@ export const ownership = {
   /*
    * Proof that people build on it, in the order the 2026-10-05 sync set: workers first, then contributors,
    * then downloads. GitHub stars were dropped here ("not relevant to this particular detail").
+   * Every figure is read live from `source` and links to the public page that shows the same number, so a
+   * reader can check it themselves.
    */
   stats: [
-    { id: 'workers', label: 'Workers in the registry' },
-    { id: 'contributors', label: 'Contributors' },
-    { id: 'npmWeek', label: 'npm downloads a week' },
-    { id: 'pypiWeek', label: 'PyPI downloads a week' },
-    { id: 'crates90d', label: 'crates.io downloads in 90 days' },
-    { id: 'dockerPulls', label: 'Docker Hub pulls' },
+    { id: 'workers', label: 'Workers in the registry', source: 'workers.iii.dev', href: 'https://workers.iii.dev/' },
+    {
+      id: 'contributors',
+      label: 'Contributors',
+      source: 'GitHub',
+      href: 'https://github.com/iii-hq/iii/graphs/contributors',
+    },
+    { id: 'npmWeek', label: 'npm downloads a week', source: 'npm', href: 'https://www.npmjs.com/package/iii-sdk' },
+    {
+      id: 'pypiWeek',
+      label: 'PyPI downloads a week',
+      source: 'pypistats.org',
+      href: 'https://pypistats.org/packages/iii-sdk',
+    },
+    {
+      id: 'crates90d',
+      label: 'crates.io downloads in 90 days',
+      source: 'crates.io',
+      href: 'https://crates.io/crates/iii-sdk',
+    },
+    { id: 'dockerPulls', label: 'Docker Hub pulls', source: 'Docker Hub', href: 'https://hub.docker.com/r/iiidev/iii' },
   ],
 }
 

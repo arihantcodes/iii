@@ -332,3 +332,14 @@
     gap: 10px;
   }
 }
+/* Press feedback on the view switch (Emil: 0.97 on :active, 160ms ease-out). */
+@media (prefers-reduced-motion: no-preference) {
+  .switchOption {
+    transition-property: color, scale;
+    transition-duration: 150ms, 160ms;
+    transition-timing-function: ease, var(--motion-ease-out);
+  }
+  .switchOption:active {
+    scale: 0.97;
+  }
+}

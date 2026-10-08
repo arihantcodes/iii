@@ -4,6 +4,7 @@ import type { ComponentType } from 'react'
 import { IconChatGpt, IconClaude, IconGrok, IconPerplexity } from '@/components/icons/assistants'
 import { IconDiscord, IconGitHub, IconLinkedIn, IconX } from '@/components/icons/iconly'
 import { askAbout, links } from '@/lib/site'
+import { cn } from '@/lib/utils'
 import { Logo } from './logo'
 
 type Icon = ComponentType<{ className?: string }>
@@ -23,7 +24,8 @@ const rowClass =
  * Footer: brand and the big pixel mark on the left, three link columns on the right (product, community with live
  * counts, assistants that can read llms.txt), and a legal row. Same destinations as iii.dev's footer plus the nav's.
  */
-export function Footer() {
+/** `container` replaces the default 1240px column so a wider page (the /a landing) lines its footer up. */
+export function Footer({ container }: { container?: string } = {}) {
   const columns: { title: string; items: Item[] }[] = [
     {
       title: 'Product',
@@ -53,7 +55,7 @@ export function Footer() {
 
   return (
     <footer className="border-t">
-      <div className="mx-auto max-w-[1240px] px-5 pt-14 sm:px-6 md:px-5 md:pt-16">
+      <div className={cn(container ?? 'mx-auto max-w-[1240px] px-5 sm:px-6 md:px-5', 'pt-14 md:pt-16')}>
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-20">
           <div className="flex flex-col">
             <a

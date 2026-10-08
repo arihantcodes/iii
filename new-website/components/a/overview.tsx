@@ -107,9 +107,9 @@ export function Overview() {
               <motion.span
                 key={caption}
                 className="truncate"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
+                initial={{ opacity: 0, transform: 'translateY(6px)' }}
+                animate={{ opacity: 1, transform: 'translateY(0px)' }}
+                exit={{ opacity: 0, transform: 'translateY(-4px)', transition: { duration: duration.fast } }}
                 transition={{ duration: duration.base, ease: easeOut }}
               >
                 {caption}

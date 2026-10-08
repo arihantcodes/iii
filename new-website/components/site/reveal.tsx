@@ -22,8 +22,10 @@ export function Reveal({ children, className, delay = 0, as = 'div' }: RevealPro
   return (
     <Component
       className={cn('reveal', className)}
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      /* A full transform string, not Motion's `y` shorthand: it stays hardware accelerated while the page is busy
+         loading and scrolling, which is exactly when reveals run. */
+      initial={{ opacity: 0, transform: 'translateY(10px)' }}
+      whileInView={{ opacity: 1, transform: 'translateY(0px)' }}
       viewport={{ once: true, amount: 'some', margin: '0px 0px -10% 0px' }}
       transition={{ duration: duration.reveal, delay, ease: easeOut }}
     >

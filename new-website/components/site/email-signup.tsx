@@ -59,8 +59,8 @@ export function EmailSignup({ className }: { className?: string }) {
           <motion.p
             key="done"
             role="status"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, transform: 'translateY(4px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0px)' }}
             transition={{ duration: duration.base, ease: easeOut }}
             className="flex h-full items-center gap-2 rounded-xl border bg-card px-3.5 text-[14px] text-foreground"
           >

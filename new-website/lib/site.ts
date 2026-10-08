@@ -1,11 +1,12 @@
 export const links = {
   quickstart: 'https://iii.dev/docs/quickstart',
   install: 'https://iii.dev/docs/install',
-  manifesto: 'https://iii.dev/manifesto',
+  /* Served by this app (app/manifesto, app/roadmap). */
+  manifesto: '/manifesto',
   docs: 'https://iii.dev/docs',
   registry: 'https://workers.iii.dev/',
   blog: 'https://iii.dev/blog/',
-  roadmap: 'https://iii.dev/roadmap/',
+  roadmap: '/roadmap',
   github: 'https://github.com/iii-hq/iii',
   workers: 'https://github.com/iii-hq/workers',
   discord: 'https://discord.gg/iiidev',

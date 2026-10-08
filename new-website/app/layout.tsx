@@ -5,6 +5,7 @@ import { Geist_Mono, Inter } from 'next/font/google'
 import './globals.css'
 import { MotionProvider } from '@/components/site/motion-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { site } from '@/lib/seo'
 import { cn } from '@/lib/utils'
 
 const fontSans = Inter({ subsets: ['latin'], variable: '--font-sans' })
@@ -14,11 +15,40 @@ const fontMono = Geist_Mono({
   variable: '--font-mono',
 })
 
+/* Site-wide defaults. Pages override the title, description and canonical; Open Graph and Twitter images come
+   from app/opengraph-image.png and app/twitter-image.png (the live iii.dev share card). */
 export const metadata: Metadata = {
-  metadataBase: new URL('https://iii.dev'),
-  title: 'iii: anything that opens a WebSocket can join your backend',
-  description:
-    'iii is an engine your APIs, jobs, devices, and AI agents all connect to. Each one registers functions by name, and any other can call them, react to them, and trace them.',
+  metadataBase: new URL(site.url),
+  title: { default: site.title, template: `%s | ${site.name}` },
+  description: site.description,
+  applicationName: site.name,
+  keywords: [...site.keywords],
+  authors: [{ name: 'III, Inc.', url: site.url }],
+  creator: 'III, Inc.',
+  publisher: 'III, Inc.',
+  category: 'technology',
+  alternates: { canonical: '/' },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
+  },
+  openGraph: {
+    type: 'website',
+    siteName: site.name,
+    locale: site.locale,
+    url: '/',
+    title: site.title,
+    description: site.description,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: site.twitter,
+    creator: site.twitter,
+    title: site.title,
+    description: site.description,
+  },
+  formatDetection: { telephone: false, email: false, address: false },
 }
 
 export const viewport: Viewport = {

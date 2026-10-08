@@ -1,13 +1,16 @@
+import type { ReactNode } from 'react'
 import {
   Accordion,
   AccordionItem,
   AccordionPanel,
   AccordionTrigger,
 } from '@/components/animate-ui/components/base/accordion'
+
 import { Reveal } from '@/components/site/reveal'
 import { Section } from '@/components/site/section'
 
-const faqs: { q: string; a: string }[] = [
+/** Exported so the page can publish the same questions as FAQPage structured data. */
+export const faqs: { q: string; a: string }[] = [
   {
     q: 'What is iii?',
     a: 'An engine that programs connect to over WebSocket. Each registers functions and triggers; the engine keeps a live registry of them, routes every call, and traces it.',
@@ -64,10 +67,11 @@ function withCode(text: string) {
   )
 }
 
-export function Faq() {
+/** `container` lets a page with its own width line the section up; `lede` sits under the heading. */
+export function Faq({ container, lede }: { container?: string; lede?: ReactNode } = {}) {
   return (
     // biome-ignore lint/correctness/useUniqueElementIds: This homepage section has one stable public anchor.
-    <Section id="faq" eyebrow="Questions" title="Questions." split>
+    <Section id="faq" eyebrow="Questions" title="Questions." lede={lede} container={container} split>
       <Reveal delay={0.1} className="mt-12 lg:mt-0">
         <Accordion className="border-t">
           {faqs.map((item) => (

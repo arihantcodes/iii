@@ -11,6 +11,8 @@ type SectionProps = {
   className?: string
   /** Heading in a sticky left column with the content beside it (large screens). */
   split?: boolean
+  /** Replaces the default 1240px container, so a page with its own width (the /a landing) lines up. */
+  container?: string
   children?: React.ReactNode
 }
 
@@ -19,13 +21,14 @@ export const sectionTitleClass =
   'mt-4 text-[32px] leading-[1.1] tracking-[-0.01em] sm:mt-5 sm:text-[36px] md:text-[44px] md:leading-[1.08]'
 
 /** Shared shell for every homepage section: hairline top rule, mono eyebrow, heading and lede. */
-export function Section({ id, eyebrow, title, lede, className, split, children }: SectionProps) {
+export function Section({ id, eyebrow, title, lede, className, split, container, children }: SectionProps) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className={cn('landing-section relative', className)}>
       <SectionRule />
       <div
         className={cn(
-          'mx-auto max-w-[1240px] px-5 py-16 sm:px-6 sm:py-20 md:px-5 md:py-24',
+          container ?? 'mx-auto max-w-[1240px] px-5 sm:px-6 md:px-5',
+          'py-16 sm:py-20 md:py-24',
           split && 'lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16',
         )}
       >

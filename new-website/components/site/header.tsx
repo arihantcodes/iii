@@ -94,7 +94,8 @@ export function Header({ stats }: { stats: CommunityStats }) {
           />
         ) : null}
       </AnimatePresence>
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 md:px-4">
+      {/* Phones: a 20px gutter, the same as the page content, so the floating bar lines up with the column under it. */}
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-5 md:px-4">
         <motion.div
           initial={false}
           animate={{
@@ -110,7 +111,9 @@ export function Header({ stats }: { stats: CommunityStats }) {
               : 'border-transparent bg-transparent',
           )}
         >
-          <div className="flex h-14 items-center gap-2 pr-2 pl-4 md:pl-5">
+          {/* Phones: a 48px bar, and the logo and the menu icon sit the same 14px in from each end (the icon is 16px
+              inside a 36px button, so 4px of padding puts its lines 14px in). Wider screens keep the 56px bar. */}
+          <div className="flex h-12 items-center gap-2 pr-1 pl-3.5 sm:h-14 sm:pr-2 sm:pl-4 md:pl-5">
             <a href="/" aria-label="iii home" className={cn('mr-3 flex items-center rounded-md', focusRing)}>
               <NavLogo />
             </a>
@@ -376,10 +379,10 @@ function MobilePanel({ community, onNavigate }: { community: MenuLink[]; onNavig
       transition={{ duration: 0.4, ease: easeOut }}
       className="overflow-hidden lg:hidden"
     >
-      <div className="max-h-[calc(100svh-96px)] overflow-y-auto border-t px-2 pt-2 pb-3">
+      <div className="max-h-[calc(100svh-96px)] overflow-y-auto border-t px-1.5 pt-2 pb-3">
         {groups.map((group) => (
           <div key={group.title} className="py-2">
-            <p className="px-3 pb-1 font-sans text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+            <p className="px-2 pb-1 font-sans text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
               {group.title}
             </p>
             {group.items.map((item) => {
@@ -393,7 +396,7 @@ function MobilePanel({ community, onNavigate }: { community: MenuLink[]; onNavig
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: 0.08 + delay, ease: easeOut }}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] transition-colors focus-visible:bg-foreground/[0.06] active:bg-foreground/[0.06]',
+                    'flex items-center gap-3 rounded-lg px-2 py-2.5 text-[15px] transition-colors focus-visible:bg-foreground/[0.06] active:bg-foreground/[0.06]',
                     focusRing,
                   )}
                 >

@@ -7,7 +7,7 @@
   --move: cubic-bezier(0.77, 0, 0.175, 1);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 
 /* ---------- Card ---------- */
@@ -90,6 +90,105 @@
   line-height: 1.6;
   color: var(--muted-foreground);
   text-wrap: pretty;
+}
+/* Focus one card: a quiet round button over the visual's top-right corner. */
+.expand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: oklch(0.2 0 0 / 0.8);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.expand::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.expand:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.dialogRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(0 0 0 / 0.7);
+  backdrop-filter: blur(4px);
+}
+.dialog {
+  --enter: cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  max-height: calc(100svh - 48px);
+  padding: 8px;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 40px 80px -24px oklch(0 0 0 / 0.8);
+  overflow: auto;
+}
+/* Concentric: 22px outer = 14px inner + 8px padding. */
+.dialogVisual {
+  position: relative;
+  height: min(560px, 62svh);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, oklch(1 0 0 / 0.035), transparent 60%),
+    #0b0b0b;
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+  overflow: hidden;
+}
+.dialogVisual .visualBody {
+  padding: 28px;
+  font-size: 14px;
+}
+.dialogVisual .terminal {
+  font-size: 13px;
+  line-height: 21px;
+}
+.dialogText {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dialogText > .text {
+  flex: 1;
+  padding: 18px 12px 12px;
+}
+.close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: 14px 8px 0 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.close:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
 }
 .controls {
   display: flex;
@@ -518,5 +617,32 @@
   }
   .visual {
     height: 380px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .expand,
+  .close {
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+  .expand:hover,
+  .close:hover {
+    color: var(--foreground);
+    background: oklch(0.26 0 0 / 0.9);
+  }
+}
+/* Press feedback (Emil: pressable things scale 0.97 on :active, 160ms ease-out). */
+@media (prefers-reduced-motion: no-preference) {
+  .expand,
+  .close,
+  .pagerDot {
+    transition-property: color, background-color, scale;
+    transition-duration: 150ms, 150ms, 160ms;
+    transition-timing-function: ease, ease, var(--motion-ease-out);
+  }
+  .expand:active,
+  .close:active,
+  .pagerDot:active {
+    scale: 0.95;
   }
 }

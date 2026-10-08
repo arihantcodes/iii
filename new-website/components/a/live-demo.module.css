@@ -270,15 +270,15 @@
   top: 0;
   left: 0;
   right: 0;
+  height: 100px;
+  transform-origin: top;
   border-left: 2px solid var(--demo-accent);
   background: color-mix(in oklch, var(--demo-accent) 7%, transparent);
   pointer-events: none;
 }
 @media (prefers-reduced-motion: no-preference) {
   .codeHighlight {
-    transition:
-      transform 360ms var(--motion-ease-in-out),
-      height 360ms var(--motion-ease-in-out);
+    transition: transform 360ms var(--motion-ease-in-out);
   }
 }
 .codeLine[data-active="true"] .lineNumber {

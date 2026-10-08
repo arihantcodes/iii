@@ -55,14 +55,14 @@ export function IconMoon({ className }: IconProps) {
 export function IconMonitor({ className }: IconProps) {
   return (
     <IconSvg className={className}>
-      <g fillRule="evenodd" clipRule="evenodd">
-        <path d="M19.2679 19.7257H17.4559C16.9739 19.7257 16.5809 20.1187 16.5809 20.6007C16.5809 21.0827 16.9739 21.4757 17.4559 21.4757H19.2679C19.7499 21.4757 20.1429 21.0827 20.1429 20.6007C20.1429 20.1187 19.7499 19.7257 19.2679 19.7257Z" />
-        <path d="M13.7025 19.7257H4.71948C4.23648 19.7257 3.84448 20.1187 3.84448 20.6007C3.84448 21.0827 4.23648 21.4757 4.71948 21.4757H13.7025C14.1845 21.4757 14.5775 21.0827 14.5775 20.6007C14.5775 20.1187 14.1845 19.7257 13.7025 19.7257Z" />
-        <path d="M17.412 2.52441H6.588C4.143 2.52441 2.5 4.24041 2.5 6.79541V12.7574C2.5 15.3124 4.143 17.0284 6.588 17.0284H17.411C19.857 17.0284 21.5 15.3124 21.5 12.7574V6.79541C21.5 4.24041 19.857 2.52441 17.412 2.52441Z" />
-      </g>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M13.871 19.8412H10.128L10.561 17.1732H13.437L13.871 19.8412ZM16.971 2.6582H7.028C4.531 2.6582 2.5 4.6902 2.5 7.1882V12.6442C2.5 15.1412 4.531 17.1732 7.028 17.1732H9.042L8.608 19.8412H7.055C6.641 19.8412 6.305 20.1772 6.305 20.5912C6.305 21.0052 6.641 21.3412 7.055 21.3412H16.943C17.357 21.3412 17.693 21.0052 17.693 20.5912C17.693 20.1772 17.357 19.8412 16.943 19.8412H15.391L14.956 17.1732H16.971C19.468 17.1732 21.5 15.1412 21.5 12.6442V7.1882C21.5 4.6902 19.468 2.6582 16.971 2.6582Z"
+      />
     </IconSvg>
   )
-} // Iconly 18147 monitor (Bold, regular)
+} // Iconly 18128 monitor 2 (Bold, regular): a screen on a stand
 
 export function IconCategory({ className }: IconProps) {
   return (
@@ -534,6 +534,18 @@ export function IconGlobe({ className }: IconProps) {
     </IconSvg>
   )
 } // Iconly 27735 Globe (Bold, regular)
+
+export function IconCloud({ className }: IconProps) {
+  return (
+    <IconSvg className={className}>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M17.367 9.84487C17.144 8.02087 15.692 4.92188 12 4.92188C8.308 4.92188 6.856 8.02087 6.634 9.84487C4.177 10.0709 2.5 11.9119 2.5 14.4619C2.5 16.2839 3.572 17.9469 5.252 18.7069C5.861 18.9489 6.517 19.0819 7.1 19.0819H16.894C17.245 19.0819 17.953 19.0329 18.773 18.6979C20.43 17.9479 21.5 16.2849 21.5 14.4619C21.5 11.9119 19.823 10.0709 17.367 9.84487Z"
+      />
+    </IconSvg>
+  )
+} // Iconly 39556 Clouds (Bold, regular): one plain cloud
 
 export function IconRefresh({ className }: IconProps) {
   return (

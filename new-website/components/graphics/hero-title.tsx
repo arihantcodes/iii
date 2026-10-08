@@ -24,23 +24,26 @@ function Lines() {
  */
 export function HeroTitle() {
   return (
-    // biome-ignore lint/correctness/useUniqueElementIds: The page has one primary heading.
-    <h1
-      id="hero-title"
+    /* The spotlight copy sits beside the heading, not inside it, so the h1 holds its text once (crawlers read
+       aria-hidden text too). The wrapper carries the type and the pointer handler; the h1 inherits both. */
+    <div
       onPointerMove={spotlightMove}
       className="group/title relative font-normal font-pixel text-[clamp(1.75rem,9.4vw,2.75rem)] leading-[1.06] tracking-[-0.02em] sm:text-[clamp(2.25rem,5vw,4.25rem)] sm:leading-[1.04]"
     >
-      <motion.span
-        className={cn('print block', spotlightBaseClass)}
-        initial={{ clipPath: 'inset(-8px 100% -8px 0px)' }}
-        animate={{ clipPath: 'inset(-8px 0% -8px 0px)' }}
-        transition={{ duration: duration.print + 0.2, delay: 0.15, ease: easeOut }}
-      >
-        <Lines />
-      </motion.span>
+      {/* biome-ignore lint/correctness/useUniqueElementIds: The page has one primary heading. */}
+      <h1 id="hero-title" className="font-normal">
+        <motion.span
+          className={cn('print block', spotlightBaseClass)}
+          initial={{ clipPath: 'inset(-8px 100% -8px 0px)' }}
+          animate={{ clipPath: 'inset(-8px 0% -8px 0px)' }}
+          transition={{ duration: duration.print + 0.2, delay: 0.15, ease: easeOut }}
+        >
+          <Lines />
+        </motion.span>
+      </h1>
       <span aria-hidden className={spotlightLayerClass}>
         <Lines />
       </span>
-    </h1>
+    </div>
   )
 }

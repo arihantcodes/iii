@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { DemoPlayback } from '@/components/graphics/demo-playback'
-import { IconGlobe, IconMonitor, IconServer } from '@/components/icons/iconly'
+import { IconCloud, IconMonitor, IconServer } from '@/components/icons/iconly'
 import { Logo } from '@/components/site/logo'
 import { useDemoPlayback } from '@/hooks/use-demo-playback'
 import { easeInOut } from '@/lib/motion'
@@ -11,7 +11,7 @@ import { easeInOut } from '@/lib/motion'
 import { ownership } from './content'
 import styles from './ownership-move.module.css'
 
-const ICONS = [IconMonitor, IconServer, IconGlobe]
+const ICONS = [IconMonitor, IconServer, IconCloud]
 /** One hop at a time, there and back: Local → Self-hosted → Cloud → Self-hosted → Local. Never a two-slot flight. */
 const PATH = [0, 1, 2, 1]
 const HOP_MS = 2800

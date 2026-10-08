@@ -57,7 +57,8 @@ export function ExecutionCode({ code, step }: { code: CodeLine[]; step: number }
           <span
             aria-hidden
             className={styles.codeHighlight}
-            style={{ transform: `translateY(${box.top}px)`, height: box.height }}
+            /* Laid out at a fixed 100px and sized with scaleY, so the slide between ranges is transform-only. */
+            style={{ transform: `translateY(${box.top}px) scaleY(${(box.height / 100).toFixed(4)})` }}
           />
         ) : null}
         <code className="code-tokens">

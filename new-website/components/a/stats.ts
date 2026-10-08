@@ -5,7 +5,7 @@ import { getCommunityStats } from '@/lib/community'
 export type PageStats = {
   stars: number | null
   contributors: number | null
-  /** Workers listed at workers.iii.dev, counted by hand on 2026-10-03. */
+  /** Workers listed at workers.iii.dev, read from the registry's own badge. */
   workers: number
   /** Adoption, as the 2026-10-05 sync asked for: the SDK on each package registry, plus the engine image. */
   downloads: {
@@ -17,14 +17,16 @@ export type PageStats = {
 }
 
 /**
- * Last good reading of each registry, checked 2026-10-07. Used only when an API is unreachable, so the
+ * Last good reading of each source, checked 2026-10-08. Used only when an API is unreachable, so the
  * section never shows a dash where a real figure belongs.
  */
-const DOWNLOADS_FALLBACK: PageStats['downloads'] = {
+const FALLBACK = {
+  workers: 98,
+  contributors: 54,
   npmWeek: 31_901,
   pypiWeek: 2_857,
-  crates90d: 45_456,
-  dockerPulls: 117_940,
+  crates90d: 45_742,
+  dockerPulls: 118_713,
 }
 
 async function getJson<T>(url: string): Promise<T | null> {
@@ -56,6 +58,25 @@ async function getContributors(): Promise<number | null> {
   }
 }
 
+/**
+ * Worker count from the registry's badge (the same one the README embeds). The registry has no JSON
+ * endpoint for this yet, so the figure comes out of the SVG's accessible label: `iii workers 98`.
+ */
+async function getWorkers(): Promise<number | null> {
+  try {
+    const res = await fetch('https://workers.iii.dev/badge/workers.svg', {
+      headers: { Accept: 'image/svg+xml' },
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!res.ok) return null
+    const count = (await res.text()).match(/aria-label="iii workers (\d+)"/)
+    return count ? Number(count[1]) : null
+  } catch {
+    return null
+  }
+}
+
 /** `iii-sdk` on npm, PyPI and crates.io, and the `iiidev/iii` engine image on Docker Hub. */
 async function getDownloads(): Promise<PageStats['downloads']> {
   const [npm, pypi, crates, docker] = await Promise.all([
@@ -65,19 +86,24 @@ async function getDownloads(): Promise<PageStats['downloads']> {
     getJson<{ pull_count: number }>('https://hub.docker.com/v2/repositories/iiidev/iii/'),
   ])
   return {
-    npmWeek: npm?.downloads ?? DOWNLOADS_FALLBACK.npmWeek,
-    pypiWeek: pypi?.data.last_week ?? DOWNLOADS_FALLBACK.pypiWeek,
-    crates90d: crates?.crate.recent_downloads ?? DOWNLOADS_FALLBACK.crates90d,
-    dockerPulls: docker?.pull_count ?? DOWNLOADS_FALLBACK.dockerPulls,
+    npmWeek: npm?.downloads ?? FALLBACK.npmWeek,
+    pypiWeek: pypi?.data.last_week ?? FALLBACK.pypiWeek,
+    crates90d: crates?.crate.recent_downloads ?? FALLBACK.crates90d,
+    dockerPulls: docker?.pull_count ?? FALLBACK.dockerPulls,
   }
 }
 
 export async function getPageStats(): Promise<PageStats> {
-  const [community, contributors, downloads] = await Promise.all([
+  const [community, workers, contributors, downloads] = await Promise.all([
     getCommunityStats(),
+    getWorkers(),
     getContributors(),
     getDownloads(),
   ])
-  /* 54 is the count the team quoted on 2026-10-05; shown only if GitHub's API is unreachable. */
-  return { stars: community.starsCount, contributors: contributors ?? 54, workers: 96, downloads }
+  return {
+    stars: community.starsCount,
+    workers: workers ?? FALLBACK.workers,
+    contributors: contributors ?? FALLBACK.contributors,
+    downloads,
+  }
 }
