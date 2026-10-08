@@ -12,7 +12,8 @@ import type { Point } from './graph/model'
  * The Overview graph, laid out the way the 2026-10-05 sync asked for: it reads left to right. A request on the
  * left, the iii engine in the middle, and every worker together in one group on the right. It starts with the
  * engine alone, workers join one or two at a time (a dependency chain arrives together), then one request is
- * served by calls that all pass through the engine. Names and functions are real registry workers.
+ * served by calls that all pass through the engine. Names, functions and languages are real registry workers
+ * (iii-hq/workers); the clouds are a sample deployment, spread across AWS, GCP and Azure.
  */
 
 /** A tighter frame than the story graph: the column of seven sets the height, nothing floats around it. The frame
@@ -22,22 +23,24 @@ const ENGINE_BOX = { x: 400, y: 268, w: 320, h: 68 } as const
 const REQUEST = { x: 100, y: 268, w: 150, h: 40 } as const
 /** Where the request → engine axis sits, as a share of the drawn height (the Overview lines it up with the text). */
 export const AXIS_RATIO = (REQUEST.y - VIEW.y) / VIEW.h
-const COLUMN = { x: 850, w: 300, h: 52, firstRow: 70, pitch: 66 } as const
+const COLUMN = { x: 830, w: 340, h: 52, firstRow: 70, pitch: 66 } as const
 
-type Worker = Point & { id: string; fn: string; origin: 'registry' | 'dependency' }
+type Worker = Point & { id: string; fn: string; lang: string; cloud: 'aws' | 'gcp' | 'azure' }
 
 const row = (i: number): Point => ({ x: COLUMN.x, y: COLUMN.firstRow + i * COLUMN.pitch })
 
-/** Seven registry workers, top to bottom in the order they join. */
+/** Seven registry workers, top to bottom in the order they join, each tagged with its language and where it runs. */
 export const WORKERS: Worker[] = [
-  { id: 'http', fn: 'trigger · http', origin: 'registry', ...row(0) },
-  { id: 'database', fn: 'database::execute', origin: 'registry', ...row(1) },
-  { id: 'harness', fn: 'agent::events', origin: 'registry', ...row(2) },
-  { id: 'llm-router', fn: 'router::chat', origin: 'dependency', ...row(3) },
-  { id: 'provider-anthropic', fn: 'provider::anthropic::stream', origin: 'dependency', ...row(4) },
-  { id: 'browser', fn: 'browser::act', origin: 'registry', ...row(5) },
-  { id: 'github', fn: 'github::pr::create', origin: 'registry', ...row(6) },
+  { id: 'http', fn: 'trigger · http', lang: 'Rust', cloud: 'aws', ...row(0) },
+  { id: 'database', fn: 'database::execute', lang: 'Rust', cloud: 'gcp', ...row(1) },
+  { id: 'harness', fn: 'agent::events', lang: 'Rust', cloud: 'aws', ...row(2) },
+  { id: 'llm-router', fn: 'router::chat', lang: 'Rust', cloud: 'azure', ...row(3) },
+  { id: 'provider-anthropic', fn: 'provider::anthropic::stream', lang: 'Rust', cloud: 'gcp', ...row(4) },
+  { id: 'claude-code', fn: 'claude::run', lang: 'TypeScript', cloud: 'azure', ...row(5) },
+  { id: 'hermes', fn: 'hermes::send', lang: 'Python', cloud: 'aws', ...row(6) },
 ]
+/** The card's tag: language, then where it is deployed. */
+const placeOf = (w: Worker) => `${w.lang} · ${w.cloud}`
 const byId = Object.fromEntries(WORKERS.map((w) => [w.id, w])) as Record<string, Worker>
 
 type Beat =
@@ -56,7 +59,11 @@ export const SCRIPT: Beat[] = [
     ids: ['harness', 'llm-router', 'provider-anthropic'],
     caption: 'harness joins · its dependencies llm-router and provider-anthropic come with it',
   },
-  { kind: 'join', ids: ['browser', 'github'], caption: 'browser and github join · seven workers, one engine' },
+  {
+    kind: 'join',
+    ids: ['claude-code', 'hermes'],
+    caption: 'claude-code (TypeScript) and hermes (Python) join · seven workers, one engine',
+  },
   { kind: 'call', from: 'request', to: 'harness', caption: 'a request arrives → iii engine → harness' },
   { kind: 'call', from: 'harness', to: 'llm-router', caption: 'harness → iii engine → llm-router (router::chat)' },
   {
@@ -66,7 +73,8 @@ export const SCRIPT: Beat[] = [
     caption: 'llm-router → iii engine → provider-anthropic · dependencies route through the engine too',
   },
   { kind: 'call', from: 'harness', to: 'database', caption: 'harness → iii engine → database (database::execute)' },
-  { kind: 'call', from: 'harness', to: 'github', caption: 'harness → iii engine → github (github::pr::create)' },
+  { kind: 'call', from: 'harness', to: 'claude-code', caption: 'harness → iii engine → claude-code (claude::run)' },
+  { kind: 'call', from: 'harness', to: 'hermes', caption: 'harness → iii engine → hermes (hermes::send)' },
   {
     kind: 'call',
     from: 'harness',
@@ -219,7 +227,7 @@ export function OverviewGraph({ step, cycle, active, className, label }: Props) 
             h={COLUMN.h}
             title={w.id}
             sub={w.fn}
-            meta={w.origin === 'dependency' ? 'dependency' : 'registry'}
+            meta={placeOf(w)}
             metaTone={joiningNow(w.id) ? 'accent' : 'muted'}
             tone={lit(w.id) ? 'lit' : 'idle'}
             visible={joined(w.id)}
@@ -297,7 +305,7 @@ export function OverviewStack({ step, active, className }: { step: number; activ
               <span className="font-mono text-foreground">{w.id}</span>
               <span className="ml-2 font-mono text-[12px] text-muted-foreground">{w.fn}</span>
             </span>
-            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{w.origin}</span>
+            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{placeOf(w)}</span>
           </li>
         ))}
       </ol>
