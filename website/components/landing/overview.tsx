@@ -76,8 +76,8 @@ export function Overview() {
           {overview.paragraphs.map((body, i) => (
             <p
               key={body}
-              /* The graph's request → engine axis lines up with the second paragraph's first line. */
-              ref={i === 1 ? anchorRef : undefined}
+              /* The graph's request → engine axis lines up with the third paragraph's first line, the middle of the copy. */
+              ref={i === 2 ? anchorRef : undefined}
               className={
                 i === overview.paragraphs.length - 1
                   ? 'text-pretty text-[16px] text-foreground leading-[1.55] md:text-[17px]'
@@ -89,9 +89,9 @@ export function Overview() {
           ))}
         </Reveal>
         <Reveal delay={0.1} className="graphic-stage min-w-0">
-          {/* Phones get the same graph stacked; the drawn SVG needs the width of a laptop to stay legible. */}
-          <OverviewStack step={step} active={active} className="lg:hidden" />
-          <div ref={graphRef} className="hidden lg:block" style={shift ? { marginTop: shift } : undefined}>
+          {/* Phones and small laptops get the same graph stacked in HTML; the drawn SVG needs a wide column to stay legible. */}
+          <OverviewStack step={step} active={active} className="min-[1400px]:hidden" />
+          <div ref={graphRef} className="hidden min-[1400px]:block" style={shift ? { marginTop: shift } : undefined}>
             <OverviewGraph
               step={step}
               cycle={cycle}
