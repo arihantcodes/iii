@@ -35,13 +35,15 @@ const CARDS: {
   mono?: boolean
   Visual: ComponentType<VisualProps>
 }[] = [
+  /* Infrastructure leads and the custom harness closes the row (2026-10-08, Anthony). */
   {
-    id: 'harness',
-    icon: <IconBot className="size-4" />,
-    title: useCases.harness.label,
-    copy: useCases.harness.solution,
-    tag: 'Your choices',
-    Visual: HarnessVisual,
+    id: 'infra',
+    icon: <IconServer className="size-4" />,
+    title: useCases.infra.label,
+    copy: useCases.infra.solution,
+    tag: useCases.infra.terminal.command,
+    mono: true,
+    Visual: InfraVisual,
   },
   {
     id: 'platform',
@@ -52,13 +54,12 @@ const CARDS: {
     Visual: PlatformVisual,
   },
   {
-    id: 'infra',
-    icon: <IconServer className="size-4" />,
-    title: useCases.infra.label,
-    copy: useCases.infra.solution,
-    tag: useCases.infra.terminal.command,
-    mono: true,
-    Visual: InfraVisual,
+    id: 'harness',
+    icon: <IconBot className="size-4" />,
+    title: useCases.harness.label,
+    copy: useCases.harness.solution,
+    tag: 'Your choices',
+    Visual: HarnessVisual,
   },
 ]
 
