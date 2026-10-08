@@ -11,9 +11,9 @@ import { AXIS_RATIO, captionFor, OverviewGraph, OverviewStack, useBeat } from '.
 import { Section } from './section'
 
 /**
- * Overview: four plain paragraphs (Anthony's copy, no labels) beside the whole system as one hub graph. The engine
- * sits in the middle, real registry workers around it, each tagged with its language and cloud, and every call is
- * drawn worker → engine → worker so the routing is unmistakable.
+ * Overview: four plain paragraphs (Anthony's copy, no labels) beside the whole system as one map: the engine at
+ * the centre, real registry workers on a ring around it, each tagged with its language and cloud, and every call
+ * drawn caller → engine → callee so the routing is unmistakable.
  */
 /** Distance from the top of the document in layout terms: offsets ignore transforms, so the 10px Reveal fade-up and
     any half-finished animation never leak into the measurement. */
@@ -96,7 +96,7 @@ export function Overview() {
               step={step}
               cycle={cycle}
               active={active}
-              label="A request on the left, the iii engine in the middle, and seven workers grouped on the right, each wired to the engine and running in a different language or cloud: http in Rust on AWS, database in Rust on GCP, harness in Rust on AWS, llm-router in Rust on Azure, provider-anthropic in Rust on GCP, claude-code in TypeScript on Azure and hermes in Python on AWS. The engine starts alone, the workers join one or two at a time, then the request is served by calls that each travel from one worker through the engine to the next."
+              label="A system map: the iii engine at the centre and eight participants on a ring around it, each labelled with where it runs: http in Rust on AWS, database in Rust on GCP, harness in Rust on AWS, llm-router in Rust on Azure, provider-anthropic in Rust on GCP, claude-code in TypeScript on Azure, hermes in Python on AWS, and the incoming request. The workers register one or two at a time, then one request is traced through the system, every call travelling from the caller through the engine to the callee."
             />
           </div>
           <div
