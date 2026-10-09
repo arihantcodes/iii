@@ -195,12 +195,13 @@ function FocusDialog({
       >
         <div className={styles.dialogVisual}>
           <card.Visual running={running} frame={frame} still={still} />
+          {/* Same corner as the card's expand button, so close sits exactly where the user clicked to open. */}
+          <button ref={closeRef} type="button" onClick={onClose} className={styles.expand} aria-label="Close">
+            <XIcon aria-hidden strokeWidth={1.75} className="size-3.5" />
+          </button>
         </div>
         <div className={styles.dialogText}>
           <CardText card={card} />
-          <button ref={closeRef} type="button" onClick={onClose} className={styles.close} aria-label="Close">
-            <XIcon aria-hidden strokeWidth={1.75} className="size-4" />
-          </button>
         </div>
       </motion.div>
     </div>
